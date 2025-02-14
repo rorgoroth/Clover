@@ -20,8 +20,6 @@ Instead, two different zero-effort workarounds have been added to the last apk:
 
   `javascript:document.cookie="4chan_pass=COOKIE_COPIED_FROM_A_BROWSER"`
 
-  This option can also be used to deal with the infamous "persistent bans" by opening the bans page entering its url. Technically it can also be used to load a verification link received by email, although for some reason this causes random cooldowns, so it's not recommended.
-
 Have fun! 🐾
 
 ![](docs/829829145484782262.png)
