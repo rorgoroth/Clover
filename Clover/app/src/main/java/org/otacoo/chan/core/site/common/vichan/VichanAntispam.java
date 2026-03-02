@@ -1,6 +1,7 @@
 /*
- * Clover - 4chan browser https://github.com/Floens/Clover/
- * Copyright (C) 2014  Floens
+ * Clover - 4chan browser https://github.com/otacoo/Clover/
+ * Copyright (C) 2014  Floens https://github.com/Floens/Clover/
+ * Copyright (C) 2026 otacoo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,11 +45,10 @@ import okhttp3.ResponseBody;
 /**
  * Vichan applies garbage looking fields to the post form, to combat bots.
  * Load up the normal html, parse the form, and get these fields for our post.
- * <p>
- * {@link #get()} blocks, run it off the main thread.
  */
 public class VichanAntispam {
     private static final String TAG = "VichanAntispam";
+
     private HttpUrl url;
 
     @Inject
@@ -62,8 +62,10 @@ public class VichanAntispam {
     }
 
     public void addDefaultIgnoreFields() {
+        // Only ignore empty standard form fields that we explicitly submit in setupPost
+        // Don't ignore fields with actual values - they might be antispam tokens
         fieldsToIgnore.addAll(Arrays.asList("board", "thread", "name", "email",
-                "subject", "body", "password", "file", "spoiler", "json_response",
+                "subject", "body", "file", "spoiler", "json_response",
                 "file_url1", "file_url2", "file_url3", "post", "com"));
     }
 
@@ -71,8 +73,21 @@ public class VichanAntispam {
         fieldsToIgnore.add(name);
     }
 
-    public Map<String, String> get() {
+    public Map<String, String> get(String comment) {
         Map<String, String> res = new HashMap<>();
+
+        // Bootstrap request to establish PHP session
+        // The server only sets PHPSESSID on requests to /post.php
+        try {
+            HttpUrl bootstrapUrl = url.newBuilder().encodedPath("/post.php").build();
+            Request bootstrapRequest = new Request.Builder()
+                    .url(bootstrapUrl)
+                    .build();
+            try (Response bootstrapResp = okHttpClient.newCall(bootstrapRequest).execute()) {
+            }
+        } catch (IOException e) {
+            Logger.e(TAG, "Bootstrap request failed", e);
+        }
 
         Request request = new Request.Builder()
                 .url(url)
@@ -81,9 +96,13 @@ public class VichanAntispam {
         try (Response response = okHttpClient.newCall(request).execute()) {
             ResponseBody body = response.body();
             if (body != null) {
-                Document document = Jsoup.parse(body.string());
+                String html = body.string();
+                Document document = Jsoup.parse(html);
                 Elements forms = document.body().getElementsByTag("form");
-                for (Element form : forms) {
+                for (int formIdx = 0; formIdx < forms.size(); formIdx++) {
+                    Element form = forms.get(formIdx);
+                    String formName = form.attr("name");
+                    boolean hasTextarea = !form.getElementsByTag("textarea").isEmpty();
                     // Usually the post form has name="post" or no name but contains a textarea.
                     if (form.attr("name").equals("post") || !form.getElementsByTag("textarea").isEmpty()) {
                         Elements inputs = form.getElementsByTag("input");
@@ -94,19 +113,26 @@ public class VichanAntispam {
                             String value = input.val();
                             String type = input.attr("type").toLowerCase(Locale.ENGLISH);
 
-                            if (name.isEmpty() || fieldsToIgnore.contains(name) || type.equals("file") || type.equals("submit")) {
+                            // Skip fields with no name, file inputs, or submit buttons
+                            if (name.isEmpty() || type.equals("file") || type.equals("submit")) {
                                 continue;
                             }
                             
+                            // Skip fields that are in the ignore list AND would be submitted in setupPost
+                            // This prevents submitting the same field twice
+                            if (fieldsToIgnore.contains(name)) {
+                                continue;
+                            }
+                            
+                            // Include any other field with a value - likely an antispam token
                             res.put(name, value);
                         }
                         
-                        // We generally ignore renamed textareas because we send the comment as "body".
-                        // Sending an empty renamed textarea might override the "body" parameter on the server.
+                        // Treat the renamed textarea as our comment field.
                         for (Element textarea : textareas) {
                             String name = textarea.attr("name");
                             if (!name.isEmpty() && !fieldsToIgnore.contains(name)) {
-                                Logger.d(TAG, "Ignoring likely renamed comment field: " + name);
+                                res.put(name, comment != null ? comment : "");
                             }
                         }
 

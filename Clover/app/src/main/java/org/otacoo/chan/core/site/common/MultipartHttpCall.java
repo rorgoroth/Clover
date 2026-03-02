@@ -35,6 +35,7 @@ public abstract class MultipartHttpCall extends HttpCall {
     private final MultipartBody.Builder formBuilder;
 
     private HttpUrl url;
+    private String customReferer;
 
     public MultipartHttpCall(Site site) {
         super(site);
@@ -45,6 +46,11 @@ public abstract class MultipartHttpCall extends HttpCall {
 
     public MultipartHttpCall url(HttpUrl url) {
         this.url = url;
+        return this;
+    }
+
+    public MultipartHttpCall referer(String referer) {
+        this.customReferer = referer;
         return this;
     }
 
@@ -66,11 +72,24 @@ public abstract class MultipartHttpCall extends HttpCall {
             @Nullable ProgressRequestBody.ProgressRequestListener progressListener
     ) {
         requestBuilder.url(url);
-        String r = url.scheme() + "://" + url.host();
-        if (url.port() != 80 && url.port() != 443) {
-            r += ":" + url.port();
+        
+        String referer = customReferer;
+        if (referer == null) {
+            // Default: use base URL if no custom Referer provided
+            referer = url.scheme() + "://" + url.host();
+            if (url.port() != 80 && url.port() != 443) {
+                referer += ":" + url.port();
+            }
         }
-        requestBuilder.addHeader("Referer", r);
+        requestBuilder.addHeader("Referer", referer);
+        
+        // Browsers add Origin to POST requests, help evade bot protections
+        String origin = url.scheme() + "://" + url.host();
+        if (url.port() != 80 && url.port() != 443) {
+            origin += ":" + url.port();
+        }
+        requestBuilder.addHeader("Origin", origin);
+
         requestBuilder.post(formBuilder.build());
     }
 }

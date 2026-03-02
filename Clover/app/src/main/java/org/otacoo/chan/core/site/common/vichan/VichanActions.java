@@ -1,6 +1,7 @@
 /*
- * Clover - 4chan browser https://github.com/Floens/Clover/
- * Copyright (C) 2014  Floens
+ * Clover - 4chan browser https://github.com/otacoo/Clover/
+ * Copyright (C) 2014  Floens https://github.com/Floens/Clover/
+ * Copyright (C) 2026 otacoo
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,6 +22,7 @@ import static android.text.TextUtils.isEmpty;
 
 import org.json.JSONObject;
 import org.otacoo.chan.core.site.SiteAuthentication;
+import org.otacoo.chan.core.site.SiteUrlHandler;
 import org.otacoo.chan.core.site.common.CommonSite;
 import org.otacoo.chan.core.site.common.MultipartHttpCall;
 import org.otacoo.chan.core.site.http.DeleteRequest;
@@ -55,8 +57,6 @@ public class VichanActions extends CommonSite.CommonActions {
         // Identifying the action is crucial for vichan
         call.parameter("post", "New Post");
         call.parameter("json_response", "1");
-
-        call.parameter("password", reply.password);
         call.parameter("name", reply.name);
         call.parameter("email", reply.options);
 
@@ -77,6 +77,9 @@ public class VichanActions extends CommonSite.CommonActions {
         // Add json_response=1 to the URL as well to force API mode
         HttpUrl currentUrl = site.endpoints().reply(reply.loadable);
         call.url(currentUrl.newBuilder().addQueryParameter("json_response", "1").build());
+        
+        String referer = site.resolvable().desktopUrl(reply.loadable, null);
+        call.referer(referer);
     }
 
     @Override
@@ -89,14 +92,15 @@ public class VichanActions extends CommonSite.CommonActions {
         VichanAntispam antispam = new VichanAntispam(
                 HttpUrl.parse(site.resolvable().desktopUrl(reply.loadable, null)));
         antispam.addDefaultIgnoreFields();
-        for (Map.Entry<String, String> e : antispam.get().entrySet()) {
+        Map<String, String> fields = antispam.get(reply.comment);
+        
+        for (Map.Entry<String, String> e : fields.entrySet()) {
             call.parameter(e.getKey(), e.getValue());
         }
     }
 
     @Override
     public void handlePost(ReplyResponse replyResponse, Response response, String result) {
-        Logger.i(TAG, "handlePost: body=" + (result != null ? result.substring(0, Math.min(result.length(), 500)).replace("\n", " ") : "null"));
 
         if (isEmpty(result)) {
             replyResponse.errorMessage = "Empty response from server";

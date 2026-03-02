@@ -470,9 +470,9 @@ public abstract class CommonSite extends SiteBase {
             if (requirePrepare()) {
                 Handler handler = new Handler(Looper.getMainLooper());
                 new Thread(() -> {
+                    setupPost(reply, call);
                     prepare(call, reply, replyResponse);
                     handler.post(() -> {
-                        setupPost(reply, call);
                         makePostCall(call, replyResponse, postListener);
                     });
                 }).start();

@@ -1,0 +1,11 @@
+HTTP/1.1 400 Bad Request
+Server: nginx/1.22.1
+Date: Mon, 02 Mar 2026 03:55:45 GMT
+Content-Type: text/html; charset=UTF-8
+Transfer-Encoding: chunked
+Connection: keep-alive
+Set-Cookie: PHPSESSID=aim5t3knaohs9iqtg9u19v5m8f; path=/
+Expires: Thu, 19 Nov 1981 08:52:00 GMT
+Cache-Control: no-store, no-cache, must-revalidate
+Pragma: no-cache
+
