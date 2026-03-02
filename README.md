@@ -17,6 +17,12 @@ Read the [CHANGES.md](CHANGES.md) file for all the changes made in this fork.
 
 Clover is a fast Android app for browsing imageboards, such as 4chan and 8chan. It adds inline replying, thread watching, notifications, themes, pass support, filters and a whole lot more. Clover is licensed under the GPL and will always be free.
 
+## Sites supported
+
+- 4chan
+- Sushichan
+- Lainchan
+
 ## Issues and features
 Issues can be reported here at the [Issues page](https://github.com/otacoo/Clover/issues).\
 Please search before reporting an issue to avoid duplicates!
@@ -25,11 +31,9 @@ Please search before reporting an issue to avoid duplicates!
 ## Contributing & Building
 
 **Note:**\
-I'll only accept [pull requests](https://github.com/otacoo/Clover/pulls) for adding *site support* or *themes*.
+I'll only accept [pull requests](https://github.com/otacoo/Clover/pulls) for adding *site support*.
 
 To build and test locally, see the [BUILD.md](docs/BUILD.md) instructions.
-
-We have a special guide for [making new themes](docs/THEMES.md).
 
 
 ## License
