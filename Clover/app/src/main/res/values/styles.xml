@@ -30,8 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <!-- Main light theme -->
     <style name="Chan.Theme" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">#ff2196F3</item>
-        <item name="colorAccent">#ff009688</item>
-        <item name="loading_bar_color">#ff009688</item>
+        <item name="colorAccent">#FF03A9F4</item>
+        <item name="loading_bar_color">#ff2196F3</item>
         <item name="ui_text_color">#ffffffff</item>
 
         <item name="android:windowBackground">@android:color/white</item>

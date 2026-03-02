@@ -228,7 +228,7 @@ public class Theme {
         }
 
         if (accentColorInt != 0) {
-            accentColor = resolvePrimaryColor(accentColorInt, ThemeHelper.PrimaryColor.BLUE);
+            accentColor = resolvePrimaryColor(accentColorInt, accentColor);
         }
 
         if (loadingBarColorInt != 0) {
