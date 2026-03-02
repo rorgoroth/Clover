@@ -26,6 +26,7 @@ import org.otacoo.chan.core.site.http.DeleteRequest;
 import org.otacoo.chan.core.site.http.LoginRequest;
 import org.otacoo.chan.core.site.http.Reply;
 import org.otacoo.chan.core.site.parser.ChanReader;
+import org.otacoo.chan.core.site.FileUploadLimits;
 
 import java.util.List;
 
@@ -179,4 +180,12 @@ public interface Site {
      * @return the created board.
      */
     Board createBoard(String name, String code);
+
+    /**
+     * Get the file upload limits for this site.
+     * Defines maximum file sizes, dimensions, and file counts for posting.
+     *
+     * @return the file upload limits for this site, never null.
+     */
+    FileUploadLimits fileUploadLimits();
 }

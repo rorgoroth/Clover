@@ -29,6 +29,7 @@ import org.otacoo.chan.core.site.common.vichan.VichanActions;
 import org.otacoo.chan.core.site.common.vichan.VichanApi;
 import org.otacoo.chan.core.site.common.vichan.VichanCommentParser;
 import org.otacoo.chan.core.site.common.vichan.VichanEndpoints;
+import org.otacoo.chan.core.site.FileUploadLimits;
 
 import okhttp3.HttpUrl;
 
@@ -98,5 +99,12 @@ public class Sushichan extends CommonSite {
         setActions(new VichanActions(this));
         setApi(new VichanApi(this));
         setParser(new VichanCommentParser());
+    }
+
+    @Override
+    public FileUploadLimits fileUploadLimits() {
+        // Sushichan: maximum post size is 40MB (4 * 10MB), can upload up to 4 files
+        long maxFileSize = 10 * 1024 * 1024;
+        return new FileUploadLimits(maxFileSize, maxFileSize, -1, 4);
     }
 }

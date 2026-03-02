@@ -29,6 +29,7 @@ import org.otacoo.chan.core.site.common.vichan.VichanActions;
 import org.otacoo.chan.core.site.common.vichan.VichanApi;
 import org.otacoo.chan.core.site.common.vichan.VichanCommentParser;
 import org.otacoo.chan.core.site.common.vichan.VichanEndpoints;
+import org.otacoo.chan.core.site.FileUploadLimits;
 
 import okhttp3.HttpUrl;
 
@@ -102,5 +103,12 @@ public class Lainchan extends CommonSite {
         setActions(new VichanActions(this));
         setApi(new VichanApi(this));
         setParser(new VichanCommentParser());
+    }
+
+    @Override
+    public FileUploadLimits fileUploadLimits() {
+        // Lainchan: maximum filesize is 75MB (3 * 25MB), max dimensions 20000x20000, 3 files
+        long maxFileSize = 25 * 1024 * 1024; // 25 MB per file
+        return new FileUploadLimits(maxFileSize, maxFileSize, 20000, 3);
     }
 }
