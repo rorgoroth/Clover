@@ -550,6 +550,25 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
         }
     }
 
+    private String maybeRandomizeFilename(String originalName) {
+        if (ChanSettings.randomizeFilename.get()) {
+            long nowMicros = System.currentTimeMillis() * 1000L;
+            long oneDayMillis = 24L * 60L * 60L * 1000L;
+            long randomPastYearMicros = (long) (Math.random() * 365L * oneDayMillis * 1000L);
+            long randomizedTimestamp = nowMicros - randomPastYearMicros;
+            
+            // Extract file extension from original name if it exists
+            String extension = "";
+            int dotIndex = originalName.lastIndexOf('.');
+            if (dotIndex > 0 && dotIndex < originalName.length() - 1) {
+                extension = originalName.substring(dotIndex);
+            }
+            
+            return randomizedTimestamp + extension;
+        }
+        return originalName;
+    }
+
     /**
      * Applies the new file and filename if they have been changed. They may change when user
      * re-encodes the picked image file (they may want to scale it down/remove metadata/change quality etc.)

@@ -579,6 +579,8 @@ Crash reports do not collect any personally identifiable information."
     <string name="setting_save_mode_board">Base folder/board</string>
     <string name="setting_save_mode_boardthread">Base folder/board/thread</string>
     <string name="setting_save_mode_legacy">Base folder/thread (legacy album)</string>
+    <string name="setting_randomize_filename">Randomize Filename</string>
+    <string name="setting_randomize_filename_description">Change file name to random Unix timestamp within the past year.</string>
     <string name="setting_save_original_filename">Save server filename</string>
     <string name="setting_save_original_filename_description">
 "Save the image with the filename the site assigned.

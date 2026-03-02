@@ -112,4 +112,9 @@ public abstract class SiteBase implements Site {
         boardManager.updateAvailableBoardsForSite(this, Collections.singletonList(board));
         return board;
     }
+
+    @Override
+    public FileUploadLimits fileUploadLimits() {
+        return FileUploadLimits.unlimited();
+    }
 }

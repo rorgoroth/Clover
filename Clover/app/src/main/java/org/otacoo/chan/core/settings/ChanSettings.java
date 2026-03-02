@@ -174,6 +174,7 @@ public class ChanSettings {
     public static final StringSetting saveLocationTreeUri;
     public static final OptionsSetting<DestinationFolderMode> saveImageFolder;
     public static final OptionsSetting<DestinationFolderMode> saveAlbumFolder;
+    public static final BooleanSetting randomizeFilename;
     public static final BooleanSetting saveOriginalFilename;
     public static final BooleanSetting shareUrl;
     public static final BooleanSetting enableReplyFab;
@@ -272,6 +273,7 @@ public class ChanSettings {
         saveLocationTreeUri = new StringSetting(p, "preference_image_save_tree_uri", "");
         saveImageFolder = new OptionsSetting<>(p, "preference_save_image_folder", DestinationFolderMode.class, DestinationFolderMode.ROOT);
         saveAlbumFolder = new OptionsSetting<>(p, "preference_save_album_folder", DestinationFolderMode.class, DestinationFolderMode.LEGACY);
+        randomizeFilename = new BooleanSetting(p, "preference_randomize_filename", false);
         saveOriginalFilename = new BooleanSetting(p, "preference_image_save_original", false);
         shareUrl = new BooleanSetting(p, "preference_image_share_url", false);
         accessiblePostInfo = new BooleanSetting(p, "preference_enable_accessible_info", false);
