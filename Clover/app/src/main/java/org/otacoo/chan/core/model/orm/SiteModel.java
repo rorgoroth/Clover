@@ -72,13 +72,13 @@ public class SiteModel {
 
     public void storeUserSettings(JsonSettings userSettings) {
         this.userSettings = gson.toJson(userSettings);
-        Logger.test("userSettings = " + this.userSettings);
+        // Logger.test("userSettings = " + this.userSettings);
     }
 
     public Pair<SiteConfig, JsonSettings> loadConfigFields() {
         SiteConfig config = gson.fromJson(this.configuration, SiteConfig.class);
         JsonSettings settings = gson.fromJson(this.userSettings, JsonSettings.class);
-        Logger.d("SiteModel", "Config: " + configuration + ", Settings: " + userSettings);
+        // Logger.d("SiteModel", "Config: " + configuration + ", Settings: " + userSettings);
         return Pair.create(config, settings);
     }
 }

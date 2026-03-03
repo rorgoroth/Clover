@@ -499,7 +499,7 @@ public class WatchManager {
     // creates and destroys the PinWatchers where needed and
     // updates the notification.
     private void updateState(boolean watchEnabled, boolean backgroundEnabled) {
-        Logger.d(TAG, "updateState watchEnabled=" + watchEnabled + " backgroundEnabled=" + backgroundEnabled + " foreground=" + isInForeground());
+        // Logger.d(TAG, "updateState watchEnabled=" + watchEnabled + " backgroundEnabled=" + backgroundEnabled + " foreground=" + isInForeground());
 
         IntervalType intervalType;
         if (!watchEnabled) {
@@ -534,6 +534,7 @@ public class WatchManager {
             }
 
             Logger.d(TAG, "Setting interval type from " + currentInterval.name() + " to " + intervalType.name());
+            // Logger.d(TAG, "Setting interval type from " + currentInterval.name() + " to " + intervalType.name());
             currentInterval = intervalType;
 
             switch (currentInterval) {
@@ -610,7 +611,7 @@ public class WatchManager {
 
     // Update the watching pins
     private void update(boolean fromBackground) {
-        Logger.d(TAG, "update() fromBackground = " + fromBackground);
+        // Logger.d(TAG, "update() fromBackground = " + fromBackground);
 
         switch (currentInterval) {
             case FOREGROUND:
@@ -731,7 +732,7 @@ public class WatchManager {
             this.pin = pin;
             inject(this);
 
-            Logger.d(TAG, "PinWatcher: created for " + pin);
+            // Logger.d(TAG, "PinWatcher: created for " + pin);
             chanLoader = chanLoaderFactory.obtain(pin.loadable, this);
         }
 
@@ -788,7 +789,7 @@ public class WatchManager {
 
         private void destroy() {
             if (chanLoader != null) {
-                Logger.d(TAG, "PinWatcher: destroyed for " + pin);
+                // Logger.d(TAG, "PinWatcher: destroyed for " + pin);
                 chanLoaderFactory.release(chanLoader, this);
                 chanLoader = null;
             }
@@ -906,13 +907,14 @@ public class WatchManager {
                     requireNotificationUpdate = true;
                 }
             }
-
+            /*
             if (Logger.debugEnabled()) {
                 Logger.d(TAG, String.format(Locale.ENGLISH,
                         "postlast=%d postnew=%d werenewposts=%b quotelast=%d quotenew=%d werenewquotes=%b nextload=%ds",
                         pin.watchLastCount, pin.watchNewCount, wereNewPosts, pin.quoteLastCount,
                         pin.quoteNewCount, wereNewQuotes, chanLoader.getTimeUntilLoadMore() / 1000));
             }
+            */
 
             if (thread.archived || thread.closed) {
                 pin.archived = true;

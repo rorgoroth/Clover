@@ -98,6 +98,7 @@ public class ThumbnailView extends View {
 
     protected boolean error = false;
     private String errorText;
+    private String labelText;
     private Paint textPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private Rect tmpTextRect = new Rect();
 
@@ -119,6 +120,7 @@ public class ThumbnailView extends View {
     private void init() {
         textPaint.setColor(0xff000000);
         textPaint.setTextSize(sp(14));
+        textPaint.setTextAlign(Paint.Align.CENTER);
         backgroundPaint.setColor(0x22000000);
         endAnimations();
     }
@@ -312,8 +314,8 @@ public class ThumbnailView extends View {
             outputRect.set(getPaddingLeft(), getPaddingTop(),
                     getWidth() - getPaddingRight(), getHeight() - getPaddingBottom());
 
-            // Gray background if thumbnail is not yet loaded.
-            if (bitmap == null || fadeAnimation != null) {
+            // Gray background if thumbnail is not yet loaded and no foreground icon is set.
+            if ((bitmap == null || fadeAnimation != null) && foreground == null) {
                 if (circular) {
                     canvas.drawRoundRect(outputRect, width / 2.0f, height / 2.0f, backgroundPaint);
                 } else {
@@ -322,6 +324,28 @@ public class ThumbnailView extends View {
             }
 
             if (bitmap == null) {
+                if (foreground != null) {
+                    canvas.save();
+                    if (foregroundCalculate) {
+                        foregroundCalculate = false;
+                        int p = AndroidUtils.dp(4);
+                        foreground.setBounds(p, p, getWidth() - p, getHeight() - p);
+                    }
+                    foreground.draw(canvas);
+                    canvas.restore();
+                }
+
+                if (labelText != null && labelText.length() > 0) {
+                    canvas.save();
+                    float x = (outputRect.left + outputRect.right) / 2f;
+                    // Vertical centering of text
+                    textPaint.setColor(AndroidUtils.getAttrColor(getContext(), R.attr.text_color_secondary));
+                    textPaint.setTextSize(sp(11));
+                    textPaint.getTextBounds(labelText, 0, labelText.length(), tmpTextRect);
+                    float y = (outputRect.top + outputRect.bottom) / 2f - (tmpTextRect.top + tmpTextRect.bottom) / 2f;
+                    canvas.drawText(labelText, x, y, textPaint);
+                    canvas.restore();
+                }
                 return;
             }
 
@@ -362,7 +386,8 @@ public class ThumbnailView extends View {
             if (foreground != null) {
                 if (foregroundCalculate) {
                     foregroundCalculate = false;
-                    foreground.setBounds(0, 0, getRight(), getBottom());
+                    int p = AndroidUtils.dp(4);
+                    foreground.setBounds(p, p, getWidth() - p, getHeight() - p);
                 }
 
                 foreground.draw(canvas);
@@ -413,6 +438,11 @@ public class ThumbnailView extends View {
         }
     }
 
+    public void setLabelText(String text) {
+        this.labelText = text;
+        invalidate();
+    }
+
     private void setImageBitmap(Bitmap bitmap) {
         bitmapShader = null;
         bitmapPaint.setShader(null);
@@ -451,5 +481,17 @@ public class ThumbnailView extends View {
             fadeAnimation.end();
             fadeAnimation = null;
         }
+    }
+
+    public void setImageDrawable(Drawable drawable) {
+        cancelRequest();
+        setImageBitmap(null);
+        this.foreground = drawable;
+        if (drawable != null) {
+            drawable.setCallback(this);
+            // Request a relayout/redraw to ensure setBounds is called during onDraw
+        }
+        foregroundCalculate = true;
+        invalidate();
     }
 }
