@@ -82,7 +82,7 @@ public class BoardSetupPresenter implements SimpleObservable.SimpleObserver<Void
         if (site.boardsType().canList) {
             site.actions().boards(boards -> {
                 boardManager.updateAvailableBoardsForSite(site, boards.boards);
-                Toast.makeText(AndroidUtils.getAppContext(), "Board list refreshed.", Toast.LENGTH_LONG).show();
+                Toast.makeText(AndroidUtils.getAppContext(), "Board list refreshed.", Toast.LENGTH_SHORT).show();
             });
         }
     }
