@@ -514,11 +514,9 @@ public class ReplyLayout extends LoadView implements
             // Check if the current layout matches the requested type
             boolean typeMatches = false;
             switch (authentication.type) {
-                case CAPTCHA1:
                 case CAPTCHA2:
                     typeMatches = authenticationLayout instanceof CaptchaLayout;
                     break;
-                case CAPTCHA2_NOJS:
                 case GENERIC_WEBVIEW:
                     typeMatches = authenticationLayout instanceof GenericWebViewAuthenticationLayout;
                     break;
@@ -538,13 +536,11 @@ public class ReplyLayout extends LoadView implements
         if (authenticationLayout == null) {
             Logger.i("ReplyLayout", "Creating new authentication layout for type: " + authentication.type);
             switch (authentication.type) {
-                case CAPTCHA1: 
                 case CAPTCHA2: {
                     authenticationLayout = new CaptchaLayout(getContext());
                     Logger.i("ReplyLayout", "Created CaptchaLayout (reCAPTCHA v2)");
                     break;
                 }
-                case CAPTCHA2_NOJS:
                 case GENERIC_WEBVIEW: {
                     GenericWebViewAuthenticationLayout view = new GenericWebViewAuthenticationLayout(getContext());
 
