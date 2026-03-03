@@ -78,8 +78,12 @@ public abstract class CommonReplyHttpCall extends HttpCall {
         // Check for captcha errors first — these require re-authentication, not a generic error
         String resultLower = result.toLowerCase(Locale.ENGLISH);
         if (resultLower.contains("forgot to solve the captcha")
-                || resultLower.contains("mistyped the captcha")) {
-            replyResponse.requireAuthentication = true;
+                || resultLower.contains("mistyped the captcha")
+                || resultLower.contains("recaptcha v2 is no longer supported")
+                || resultLower.contains("verification failed")
+                || resultLower.contains("is_error = \"true\"")) {
+            Logger.w(TAG, "process: Captcha failure detected in response content");
+            replyResponse.requireAuthentication = true; 
             return;
         }
 
@@ -104,10 +108,13 @@ public abstract class CommonReplyHttpCall extends HttpCall {
                 replyResponse.errorMessage = Jsoup.parse(errorMessageMatcher.group(1)).body().text();
                 replyResponse.probablyBanned = replyResponse.errorMessage.toLowerCase(Locale.ENGLISH)
                         .contains(PROBABLY_BANNED_TEXT);
+                Logger.w(TAG, "Posting: Post failed with error message: " + replyResponse.errorMessage);
+            } else {
+                Logger.w(TAG, "Posting: Post failed but no error message found in body");
             }
         }
 
-        Logger.i(TAG, "process: result — posted=" + replyResponse.posted
+        Logger.i(TAG, "Posting: result — posted=" + replyResponse.posted
                 + " requireAuth=" + replyResponse.requireAuthentication
                 + " errorMessage=" + replyResponse.errorMessage
                 + " postNo=" + replyResponse.postNo);
