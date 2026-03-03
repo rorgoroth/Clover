@@ -168,14 +168,19 @@ public class MainSettingsController extends SettingsController implements Settin
                             new AppearanceSettingsController(context))));
 
             general.add(new LinkSettingView(this,
-                    R.string.settings_behavior, R.string.settings_behavior_description,
+                    R.string.settings_boards_threads_posts, R.string.settings_boards_threads_posts_description,
                     v -> navigationController.pushController(
-                            new BehaviourSettingsController(context))));
+                            new BrowsingSettingsController(context))));
 
             general.add(new LinkSettingView(this,
                     R.string.settings_media, R.string.settings_media_description,
                     v -> navigationController.pushController(
                             new MediaSettingsController(context))));
+
+            general.add(new LinkSettingView(this,
+                    R.string.settings_behavior, R.string.settings_behavior_description,
+                    v -> navigationController.pushController(
+                            new MiscSettingsController(context))));
 
             filtersSetting = (LinkSettingView) general.add(new LinkSettingView(this,
                     R.string.settings_filters, 0,

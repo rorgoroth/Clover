@@ -146,6 +146,11 @@ public class MediaSettingsController extends SettingsController implements
                     R.string.setting_save_album_folder, createDestinationFolderList()));
 
             media.add(new BooleanSettingView(this,
+                    ChanSettings.useImmersiveModeForGallery,
+                    R.string.setting_images_immersive_mode_title,
+                    R.string.setting_images_immersive_mode_description));
+
+            media.add(new BooleanSettingView(this,
                     ChanSettings.randomizeFilename,
                     R.string.setting_randomize_filename,
                     R.string.setting_randomize_filename_description));

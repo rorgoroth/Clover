@@ -109,11 +109,6 @@ public class DeveloperSettingsController extends Controller {
         clearCookiesButton.setText("Clear WebView cookies");
         wrapper.addView(clearCookiesButton);
 
-        Button viewCookiesButton = new Button(context);
-        viewCookiesButton.setText("View/Edit 4chan Cookies");
-        viewCookiesButton.setOnClickListener(v -> showCookieManagerDialog());
-        wrapper.addView(viewCookiesButton);
-
         summaryText = new TextView(context);
         summaryText.setPadding(0, dp(25), 0, 0);
         wrapper.addView(summaryText);

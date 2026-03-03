@@ -102,12 +102,29 @@ public class AppearanceSettingsController extends SettingsController {
                     ChanSettings.accessiblePostInfo, R.string.setting_enable_accessible_post_info,
                     R.string.setting_enable_accessible_post_info_description)));
 
-            requiresUiRefresh.add(layout.add(new BooleanSettingView(this,
-                    ChanSettings.useImmersiveModeForGallery,
-                    R.string.setting_images_immersive_mode_title,
-                    R.string.setting_images_immersive_mode_description)));
-
             groups.add(layout);
+        }
+
+        // Imageboards group
+        {
+            SettingsGroup imageboards = new SettingsGroup(R.string.settings_group_imageboards);
+
+            requiresUiRefresh.add(imageboards.add(new BooleanSettingView(this,
+                    ChanSettings.layoutTextBelowThumbnails,
+                    R.string.setting_alternate_layout_mode_title,
+                    R.string.setting_alternate_layout_mode_description)));
+
+            requiresUiRefresh.add(imageboards.add(new BooleanSettingView(this,
+                    ChanSettings.repliesButtonsBottom,
+                    R.string.setting_buttons_bottom, 0)));
+
+            requiresUiRefresh.add(imageboards.add(new BooleanSettingView(this,
+                    ChanSettings.alwaysShowReplyTags,
+                    R.string.setting_always_show_reply_tags, 0)));
+
+            setupThumbnailScaleSetting(imageboards);
+
+            groups.add(imageboards);
         }
 
         // Post group
@@ -120,25 +137,6 @@ public class AppearanceSettingsController extends SettingsController {
                     ChanSettings.fontCondensed,
                     R.string.setting_font_condensed,
                     R.string.setting_font_condensed_description)));
-
-            setupThumbnailScaleSetting(post);
-
-            requiresUiRefresh.add(post.add(new BooleanSettingView(this,
-                    ChanSettings.layoutTextBelowThumbnails,
-                    R.string.setting_alternate_layout_mode_title,
-                    R.string.setting_alternate_layout_mode_description)));
-
-            requiresUiRefresh.add(post.add(new BooleanSettingView(this,
-                    ChanSettings.postFullDate,
-                    R.string.setting_post_full_date, 0)));
-
-            requiresUiRefresh.add(post.add(new BooleanSettingView(this,
-                    ChanSettings.postFileInfo,
-                    R.string.setting_post_file_info, 0)));
-
-            requiresUiRefresh.add(post.add(new BooleanSettingView(this,
-                    ChanSettings.postFilename,
-                    R.string.setting_post_filename, 0)));
 
             groups.add(post);
         }
