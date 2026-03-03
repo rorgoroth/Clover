@@ -75,7 +75,6 @@ public class NetModule {
                             builder.expiresAt(System.currentTimeMillis() + httpCookie.getMaxAge() * 1000);
                         }
                         result.add(builder.build());
-                        Logger.i(TAG, "Loaded cookie " + httpCookie.getName() + " for " + url.host());
                     }
                 } catch (Exception e) {
                 }
