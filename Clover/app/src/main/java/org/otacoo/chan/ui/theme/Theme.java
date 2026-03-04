@@ -86,7 +86,7 @@ public class Theme {
     public ThemeDrawable backDrawable;
     public ThemeDrawable doneDrawable;
     public ThemeDrawable historyDrawable;
-    public ThemeDrawable listAddDrawable;
+    public ThemeDrawable pinSearchDrawable;
     public ThemeDrawable helpDrawable;
     public ThemeDrawable refreshDrawable;
     public ThemeDrawable reorderDrawable;
@@ -118,7 +118,7 @@ public class Theme {
             backDrawable = new ThemeDrawable(R.drawable.ic_arrow_back_black_24dp, 0.54f);
             doneDrawable = new ThemeDrawable(R.drawable.ic_done_black_24dp, 0.54f);
             historyDrawable = new ThemeDrawable(R.drawable.ic_history_black_24dp, 0.54f);
-            listAddDrawable = new ThemeDrawable(R.drawable.ic_playlist_add_black_24dp, 0.54f);
+            pinSearchDrawable = new ThemeDrawable(R.drawable.ic_add_black_24dp, 0.54f);
             helpDrawable = new ThemeDrawable(R.drawable.ic_help_outline_black_24dp, 0.54f);
             refreshDrawable = new ThemeDrawable(R.drawable.ic_refresh_black_24dp, 0.54f);
             reorderDrawable = new ThemeDrawable(R.drawable.ic_reorder_black_24dp, 0.54f);
@@ -130,7 +130,7 @@ public class Theme {
             backDrawable = new ThemeDrawable(R.drawable.ic_arrow_back_white_24dp, 1f);
             doneDrawable = new ThemeDrawable(R.drawable.ic_done_white_24dp, 1f);
             historyDrawable = new ThemeDrawable(R.drawable.ic_history_white_24dp, 1f);
-            listAddDrawable = new ThemeDrawable(R.drawable.ic_playlist_add_white_24dp, 1f);
+            pinSearchDrawable = new ThemeDrawable(R.drawable.ic_add_white_24dp, 1f);
             helpDrawable = new ThemeDrawable(R.drawable.ic_help_outline_white_24dp, 1f);
             refreshDrawable = new ThemeDrawable(R.drawable.ic_refresh_white_24dp, 1f);
             reorderDrawable = new ThemeDrawable(R.drawable.ic_reorder_black_24dp, 1f, true);
@@ -145,7 +145,7 @@ public class Theme {
         backDrawable = new ThemeDrawable(R.drawable.ic_arrow_back_white_24dp, 1f);
         doneDrawable = new ThemeDrawable(R.drawable.ic_done_white_24dp, 1f);
         historyDrawable = new ThemeDrawable(R.drawable.ic_history_white_24dp, 1f);
-        listAddDrawable = new ThemeDrawable(R.drawable.ic_playlist_add_white_24dp, 1f);
+        pinSearchDrawable = new ThemeDrawable(R.drawable.ic_add_white_24dp, 1f);
         helpDrawable = new ThemeDrawable(R.drawable.ic_help_outline_white_24dp, 1f);
         refreshDrawable = new ThemeDrawable(R.drawable.ic_refresh_white_24dp, 1f);
         reorderDrawable = new ThemeDrawable(R.drawable.ic_reorder_black_24dp, 1f, true);

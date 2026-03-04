@@ -201,7 +201,7 @@ public class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
                 headerHolder.text.setText(R.string.drawer_pinned);
                 theme().clearDrawable.apply(headerHolder.clear);
                 headerHolder.add.setVisibility(showPinnedSearches() ? View.VISIBLE : View.GONE);
-                theme().listAddDrawable.apply(headerHolder.add);
+                theme().pinSearchDrawable.apply(headerHolder.add);
 
                 break;
             case TYPE_SEARCH_PIN:
