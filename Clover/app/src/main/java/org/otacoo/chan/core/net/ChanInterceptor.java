@@ -39,8 +39,15 @@ public class ChanInterceptor implements Interceptor {
     public Response intercept(@NonNull Interceptor.Chain chain) throws IOException {
         Request originalRequest = chain.request();
 
-        Request.Builder builder = originalRequest.newBuilder()
-                .header("User-Agent", userAgentProvider.getUserAgent());
+        Request.Builder builder = originalRequest.newBuilder();
+
+        // Only set User-Agent if not already explicitly set on the request.
+        // Site-specific request modifiers (e.g. Sushichan, Lainchan) and
+        // VichanAntispam set a desktop Chrome UA to bypass bot detection;
+        // overwriting it with the default Android UA would undermine that.
+        if (originalRequest.header("User-Agent") == null) {
+            builder.header("User-Agent", userAgentProvider.getUserAgent());
+        }
 
         // Add standard browser Accept header if not present
         if (originalRequest.header("Accept") == null) {
