@@ -25,13 +25,26 @@ public final class Chan8RateLimit {
     private static final int MAX_CONCURRENT = 8;
     private static final Semaphore SEMAPHORE = new Semaphore(MAX_CONCURRENT, true);
 
-    /** Currently active domain; switches to the other on connectivity failure. */
-    private static volatile String activeDomain = "8chan.moe";
+    /** Primary domain, always the default on a fresh start. */
+    public static final String PRIMARY_DOMAIN = "8chan.moe";
+        /** First fallback domain when PRIMARY_DOMAIN is unreachable. */
+        public static final String SECONDARY_DOMAIN = "8chan.st";
+        /** Second fallback domain when PRIMARY_DOMAIN and SECONDARY_DOMAIN are unreachable. */
+        public static final String TERTIARY_DOMAIN = "8chan.cc";
+
+        private static final String[] DOMAIN_ORDER = new String[] {
+            PRIMARY_DOMAIN,
+            SECONDARY_DOMAIN,
+            TERTIARY_DOMAIN
+        };
+
+    /** Active domain for this session.  In-memory only — resets to primary on restart. */
+    private static volatile String activeDomain = PRIMARY_DOMAIN;
 
     private Chan8RateLimit() {}
 
     public static boolean is8chan(String url) {
-        return url.contains("8chan.moe") || url.contains("8chan.st") || url.contains("8chan.cc"); 
+        return url.contains("8chan.moe") || url.contains("8chan.st") || url.contains("8chan.cc");
     }
 
     public static boolean isMedia(String url) {
@@ -41,6 +54,18 @@ public final class Chan8RateLimit {
     /** Returns the currently active 8chan domain (e.g. {@code "8chan.moe"}). */
     public static String getActiveDomain() {
         return activeDomain;
+    }
+
+    /**
+     * Override the active domain for this session (in-memory only).
+     * Called after the user completes verification on a non-primary domain,
+     * so API calls continue to the domain that holds their session cookies.
+     */
+    public static void setActiveDomain(String domain) {
+        if (domain != null &&
+                (domain.equals("8chan.moe") || domain.equals("8chan.st") || domain.equals("8chan.cc"))) {
+            activeDomain = domain;
+        }
     }
 
     /**
@@ -57,13 +82,23 @@ public final class Chan8RateLimit {
     }
 
     /**
-     * Called when a request to {@code domain} fails with a connectivity error.
-     * Switches to the other domain so subsequent requests use the fallback.
+     * Called when a network-level failure (IOException, HTTP 5xx) occurs for
+     * {@code domain}.  Switches to the fallback for the remainder of the session.
+     * Only acts when the failing domain is the currently active one.
      */
     public static void notifyDomainUnreachable(String domain) {
-        if (domain.equals(activeDomain)) {
-            activeDomain = activeDomain.equals("8chan.moe") ? "8chan.st" : "8chan.moe";
+        if (domain != null && domain.equals(activeDomain)) {
+            activeDomain = nextDomain(activeDomain);
         }
+    }
+
+    private static String nextDomain(String currentDomain) {
+        for (int i = 0; i < DOMAIN_ORDER.length; i++) {
+            if (DOMAIN_ORDER[i].equals(currentDomain)) {
+                return DOMAIN_ORDER[(i + 1) % DOMAIN_ORDER.length];
+            }
+        }
+        return PRIMARY_DOMAIN;
     }
 
     public static void acquire() throws InterruptedException {
