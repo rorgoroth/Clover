@@ -1,3 +1,24 @@
+## 2026-03-05 – v3.1.5
+
+- **New option:** Pinned Searches (under Appearance)
+  - Adds a + button to the bookmarks drawer to pin catalog searches (not compatible with Sushi/Lain sites)
+- Cross-board catalog searches (e.g. >>>/a/example) will now correctly show the catalog view
+- Posting on Sushichan should now work correctly without errors (issue #3)
+- 4chan captcha:
+  - Captcha challenge buttons will now follow theming
+  - Task images will now preserve their aspect ratios instead of being stretched
+  - Fix for task instruction image not being zoomable in single page view
+  - Remove confusing blue border when a challenge is hovered
+  - Better native 4chan error handling when captcha fails
+- Improve performance of the app
+  - Media viewer and drawers should now feel more responsive
+  - Videos no longer briefly flash before playback begins
+  - Better separation of UI and background threads
+  - Quieted down unnecessary backgroung logging
+- Themes: Fix for the loading bar option not applying the user's color choice
+- Adjusted some of the Settings' descriptions
+- Minor backend fixes & annoyances
+
 ## 2026-03-03 – v3.1.4
 
 - **New option:** Randomize Filenames
