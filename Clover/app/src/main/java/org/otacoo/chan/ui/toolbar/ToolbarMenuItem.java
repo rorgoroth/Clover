@@ -65,8 +65,10 @@ public class ToolbarMenuItem {
     }
 
     public void attach(ImageView view) {
+        if (this.view == view) return;
+
         if (this.view != null) {
-            throw new IllegalStateException("Already attached");
+            detach();
         }
 
         this.view = view;
