@@ -530,7 +530,6 @@ public class ReplyLayout extends LoadView implements
             }
             
             if (!typeMatches) {
-                Logger.i("ReplyLayout", "Authentication type changed, destroying old layout");
                 authenticationLayout.onDestroy();
                 captchaContainer.removeView((View) authenticationLayout);
                 authenticationLayout = null;
@@ -538,11 +537,9 @@ public class ReplyLayout extends LoadView implements
         }
         
         if (authenticationLayout == null) {
-            Logger.i("ReplyLayout", "Creating new authentication layout for type: " + authentication.type);
             switch (authentication.type) {
                 case CAPTCHA2: {
                     authenticationLayout = new CaptchaLayout(getContext());
-                    Logger.i("ReplyLayout", "Created CaptchaLayout (reCAPTCHA v2)");
                     break;
                 }
                 case GENERIC_WEBVIEW: {

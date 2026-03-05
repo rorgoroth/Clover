@@ -480,7 +480,7 @@ public class Chan4 extends SiteBase {
                 return SiteAuthentication.fromNone();
             } else {
                 // Always use new native 4chan captcha
-                Logger.i(TAG, "postAuthenticate: using NEW_CAPTCHA");
+                //Logger.i(TAG, "postAuthenticate: using NEW_CAPTCHA");
                 return SiteAuthentication.fromNewCaptcha("https://boards.4chan.org");
             }
         }
