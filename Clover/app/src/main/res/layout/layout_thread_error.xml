@@ -31,18 +31,22 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     <Button
         android:id="@+id/button"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
+        android:minWidth="140dp"
         android:text="@string/thread_load_failed_retry" />
 
     <Button
         android:id="@+id/auth_button"
+        style="@style/Widget.AppCompat.Button.Borderless.Colored"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginTop="8dp"
-        android:text="Open in Browser (Verification)"
+        android:layout_marginTop="4dp"
+        android:minWidth="140dp"
+        android:text="Open in Browser (Verify)"
         android:visibility="gone" />
 
 </LinearLayout>

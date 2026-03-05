@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- Captcha image — tap it to fetch a new one -->
+    <ImageView
+        android:id="@+id/lynxchan_captcha_image"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:scaleType="fitCenter"
+        android:background="@android:color/transparent"
+        android:contentDescription="Captcha image" />
+
+    <!-- Input row: text field + refresh button -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="4dp">
+
+        <EditText
+            android:id="@+id/lynxchan_captcha_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Enter the text above"
+            android:inputType="textNoSuggestions"
+            android:imeOptions="actionDone"
+            android:maxLines="1"
+            android:textSize="14sp" />
+
+        <Button
+            android:id="@+id/lynxchan_captcha_refresh"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="↺"
+            android:textSize="18sp"
+            android:minWidth="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <Button
+            android:id="@+id/lynxchan_captcha_submit"
+            style="@style/Widget.AppCompat.Button.Borderless.Colored"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OK"
+            android:minWidth="0dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/lynxchan_captcha_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:text="Loading captcha…"
+        android:layout_marginTop="2dp" />
+
+</LinearLayout>
