@@ -25,7 +25,6 @@ import androidx.annotation.AnyThread;
 import androidx.annotation.MainThread;
 import androidx.annotation.WorkerThread;
 
-import org.otacoo.chan.core.net.Chan8RateLimit;
 import org.otacoo.chan.core.settings.ChanSettings;
 import org.otacoo.chan.utils.Logger;
 
@@ -65,10 +64,8 @@ public class FileCacheDownloader implements Runnable {
     private final List<FileCacheListener> listeners = new ArrayList<>();
 
     // Main and worker thread.
-    private AtomicBoolean running = new AtomicBoolean(false);
-    private AtomicBoolean cancel = new AtomicBoolean(false);
-    // Set to true when we hold a Chan8RateLimit permit for this download.
-    private volatile boolean acquiredChan8Semaphore = false;
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicBoolean cancel = new AtomicBoolean(false);
     private Future<?> future;
 
     // Worker thread.
@@ -147,16 +144,7 @@ public class FileCacheDownloader implements Runnable {
     @Override
     @WorkerThread
     public void run() {
-        log("start");
         running.set(true);
-        if (Chan8RateLimit.is8chan(url)) {
-            try {
-                Chan8RateLimit.acquire();
-                acquiredChan8Semaphore = true;
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
         execute();
     }
 
@@ -178,11 +166,7 @@ public class FileCacheDownloader implements Runnable {
 
             checkCancel();
 
-            log("got input stream");
-
             pipeBody(source, sink);
-
-            log("done");
 
             post(() -> {
                 callback.downloaderAddedFile(output);
@@ -233,55 +217,16 @@ public class FileCacheDownloader implements Runnable {
             if (body != null) {
                 Util.closeQuietly(body);
             }
-
-            // Release the 8chan rate-limit permit.
-            if (acquiredChan8Semaphore) {
-                Chan8RateLimit.release();
-                acquiredChan8Semaphore = false;
-            }
         }
     }
 
     @WorkerThread
     private ResponseBody getBody() throws IOException {
-        return getBody(false);
-    }
-
-    @WorkerThread
-    private ResponseBody getBody(boolean isRetry) throws IOException {
-        // Rewrite to active domain in case 8chan.moe went down and we failed over to 8chan.st.
-        String reqUrl = Chan8RateLimit.rewriteToActiveDomain(url);
-
         Request.Builder requestBuilder = new Request.Builder()
-                .url(reqUrl)
+                .url(url)
                 .header("User-Agent", userAgent);
 
-        if (Chan8RateLimit.is8chan(reqUrl)) {
-            requestBuilder.header("Referer", getBaseUrl(reqUrl));
-            String v = userAgent.replaceAll(".*Chrome/(\\d+).*", "$1");
-            if (!v.equals(userAgent)) {
-                requestBuilder.header("Sec-Ch-Ua",
-                        "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"" + v
-                        + "\", \"Google Chrome\";v=\"" + v + "\"");
-            }
-            requestBuilder.header("Sec-Ch-Ua-Mobile", "?1");
-            requestBuilder.header("Sec-Ch-Ua-Platform", "\"Android\"");
-            requestBuilder.header("Accept-Language", "en-US,en;q=0.9");
-            String lower = reqUrl.toLowerCase();
-            boolean isVideo = lower.endsWith(".webm") || lower.endsWith(".mp4")
-                    || lower.endsWith(".mov") || lower.endsWith(".ogg");
-            if (isVideo) {
-                requestBuilder.header("Accept", "video/webm,video/mp4,video/*;q=0.9,*/*;q=0.5");
-                requestBuilder.header("Sec-Fetch-Dest", "video");
-            } else {
-                requestBuilder.header("Accept", "image/webp,image/avif,image/*,*/*;q=0.8");
-                requestBuilder.header("Sec-Fetch-Dest", "image");
-            }
-            requestBuilder.header("Sec-Fetch-Mode", "no-cors");
-            requestBuilder.header("Sec-Fetch-Site", "same-origin");
-        }
-
-        String cookies = android.webkit.CookieManager.getInstance().getCookie(reqUrl);
+        String cookies = CookieManager.getInstance().getCookie(url);
         if (cookies != null && !cookies.isEmpty()) {
             requestBuilder.header("Cookie", cookies);
         }
@@ -294,62 +239,7 @@ public class FileCacheDownloader implements Runnable {
 
         call = client.newCall(request);
 
-        Response response;
-        try {
-            response = call.execute();
-        } catch (java.net.UnknownHostException e) {
-            if (Chan8RateLimit.is8chan(url)) {
-                Chan8RateLimit.notifyDomainUnreachable(new java.net.URL(reqUrl).getHost());
-            }
-            throw e;
-        }
-
-        // For 8chan, log the response code and clear PoW cookies on non-200.
-        if (Chan8RateLimit.is8chan(reqUrl)) {
-            log("8chan response: HTTP " + response.code());
-            if (!response.isSuccessful()) {
-                log("  headers: " + response.headers());
-            }
-        }
-
-        if (response.isSuccessful() && Chan8RateLimit.is8chan(reqUrl)) {
-            String age = response.header("Age");
-            String expires = response.header("Expires");
-            String cacheControl = response.header("Cache-Control");
-            String contentType = response.header("Content-Type");
-            
-            boolean isPoWBlock = ("0".equals(age) && "0".equals(expires) && cacheControl != null && cacheControl.contains("no-cache")) ||
-                                (contentType != null && contentType.contains("text/html"));
-            
-            if (isPoWBlock && !isRetry) {
-                log("Detected 8chan.moe PoW block on media (ContentType: " + contentType + "), attempting session refresh...");
-                response.close();
-                
-                // Perform a GET to the root to trigger/refresh session
-                Request rootRequest = new Request.Builder()
-                        .url(getBaseUrl(reqUrl))
-                        .header("User-Agent", userAgent)
-                        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
-                        .header("Referer", getBaseUrl(reqUrl))
-                        .header("Cookie", cookies)
-                        .build();
-                try (Response rootResponse = client.newCall(rootRequest).execute()) {
-                    List<String> cookieHeaders = rootResponse.headers("Set-Cookie");
-                    for (String header : cookieHeaders) {
-                        android.webkit.CookieManager.getInstance().setCookie(getBaseUrl(reqUrl), header);
-                    }
-                } catch (IOException e) {
-                    log("Failed to refresh session", e);
-                }
-                
-                // Retry the original request
-                return getBody(true);
-            } else if (isPoWBlock && isRetry) {
-                log("Failed to bypass PoW block even after retry. ContentType: " + contentType);
-                response.close();
-                throw new IOException("Failed to bypass 8chan.moe PoW block after session refresh retry");
-            }
-        }
+        Response response = call.execute();
 
         if (!response.isSuccessful()) {
             int code = response.code();
@@ -369,15 +259,6 @@ public class FileCacheDownloader implements Runnable {
         return body;
     }
 
-    private String getBaseUrl(String urlString) {
-        try {
-            java.net.URL url = new java.net.URL(urlString);
-            return url.getProtocol() + "://" + url.getHost() + "/";
-        } catch (Exception e) {
-            return urlString;
-        }
-    }
-
     @WorkerThread
     private void pipeBody(Source source, BufferedSink sink) throws IOException {
         long contentLength = body.contentLength();
@@ -394,7 +275,6 @@ public class FileCacheDownloader implements Runnable {
 
             if (total >= notifyTotal + NOTIFY_SIZE) {
                 notifyTotal = total;
-                log("progress " + (total / (float) contentLength));
                 postProgress(total, contentLength <= 0 ? total : contentLength);
             }
 
@@ -442,7 +322,7 @@ public class FileCacheDownloader implements Runnable {
     }
 
     private static class HttpCodeIOException extends IOException {
-        private int code;
+        private final int code;
 
         public HttpCodeIOException(int code) {
             this.code = code;
