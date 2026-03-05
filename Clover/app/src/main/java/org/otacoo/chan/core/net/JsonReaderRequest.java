@@ -53,7 +53,19 @@ public abstract class JsonReaderRequest<T> implements Callback {
         if (call.isCanceled()) return;
         
         if (!response.isSuccessful()) {
-            AndroidUtils.runOnUiThread(() -> listener.onError("HTTP " + response.code()));
+            // HTTP 5xx means the server is down — treat as unreachable for failover.
+            // 4xx errors (including 403 from POWBlock redirects) are auth issues, not
+            // connectivity failures, so we do NOT switch domains for those.
+            int respCode = response.code();
+            if (respCode >= 500) {
+                String url = call.request().url().toString();
+                if (org.otacoo.chan.core.net.Chan8RateLimit.is8chan(url)) {
+                    org.otacoo.chan.core.net.Chan8RateLimit.notifyDomainUnreachable(
+                            call.request().url().host());
+                }
+            }
+            response.close();
+            AndroidUtils.runOnUiThread(() -> listener.onError("HTTP " + respCode));
             return;
         }
 
