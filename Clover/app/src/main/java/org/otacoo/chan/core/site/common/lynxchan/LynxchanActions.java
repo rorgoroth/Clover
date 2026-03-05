@@ -151,41 +151,97 @@ public class LynxchanActions extends CommonSite.CommonActions {
             call.fileParameter("files", reply.fileName, reply.file);
         }
 
-        if (reply.captchaResponse != null) {
-            call.parameter("captcha", reply.captchaResponse);
+        // Lynxchan captcha: challengeId goes in captchaId, the typed answer in captchaAnswer.
+        // Also send the legacy "captcha" field for compatibility with older Lynxchan versions.
+        if (!isEmpty(reply.captchaChallenge)) {
+            call.parameter("captchaId", reply.captchaChallenge);
+        }
+        if (!isEmpty(reply.captchaResponse)) {
+            call.parameter("captchaAnswer", reply.captchaResponse);
+            call.parameter("captcha", reply.captchaResponse); // legacy fallback
         }
     }
 
     @Override
     public void handlePost(ReplyResponse replyResponse, Response response, String result) {
+        Logger.i(TAG, "handlePost: HTTP " + response.code()
+                + " body=" + result.substring(0, Math.min(result.length(), 512))
+                        .replace("\n", "\\n"));
+
+        // Lynxchan returns HTML instead of JSON for challenge/error pages when
+        // cookies are stale — detect this before attempting JSON parse.
+        String trimmed = result.trim();
+        if (trimmed.startsWith("<") || trimmed.contains("<html") || trimmed.contains("<!DOCTYPE")) {
+            replyResponse.requireAuthentication = true;
+            replyResponse.errorMessage = "Session challenge page returned — please re-verify via Login.";
+            Logger.w(TAG, "handlePost: received HTML response, treating as auth required");
+            return;
+        }
+
         try {
             JSONObject json = new JSONObject(result);
             String status = json.optString("status");
-            
-            if ("ok".equals(status)) {
-                replyResponse.posted = true;
-                // Lynxchan typically returns the thread/post ID in the "data" field
-                Object data = json.opt("data");
-                if (data instanceof Number) {
-                    replyResponse.postNo = ((Number) data).intValue();
-                    if (replyResponse.threadNo == 0) {
-                        replyResponse.threadNo = replyResponse.postNo;
+            Logger.i(TAG, "handlePost: status=" + status + " data=" + json.opt("data"));
+
+            switch (status) {
+                case "ok": {
+                    replyResponse.posted = true;
+                    // Lynxchan returns the new post/thread number in the "data" field.
+                    Object data = json.opt("data");
+                    if (data instanceof Number) {
+                        replyResponse.postNo = ((Number) data).intValue();
+                        if (replyResponse.threadNo == 0) {
+                            replyResponse.threadNo = replyResponse.postNo;
+                        }
+                    } else if (data instanceof String) {
+                        try {
+                            replyResponse.postNo = Integer.parseInt((String) data);
+                            if (replyResponse.threadNo == 0) {
+                                replyResponse.threadNo = replyResponse.postNo;
+                            }
+                        } catch (NumberFormatException ignored) {}
                     }
+                    break;
                 }
-            } else if ("error".equals(status)) {
-                replyResponse.errorMessage = json.optString("data", "Unknown Lynxchan error");
-                // Check if captcha is required
-                if (replyResponse.errorMessage.toLowerCase().contains("captcha")) {
+                case "error": {
+                    String msg = json.optString("data", "Unknown Lynxchan error");
+                    replyResponse.errorMessage = msg;
+                    // Captcha-related errors should re-trigger the captcha UI.
+                    String msgLower = msg.toLowerCase();
+                    if (msgLower.contains("captcha") || msgLower.contains("verification")
+                            || msgLower.contains("invalid") || msgLower.contains("expired")) {
+                        replyResponse.requireAuthentication = true;
+                    }
+                    break;
+                }
+                case "bypassable":
+                    // Server wants a captcha bypass solved before accepting the post.
                     replyResponse.requireAuthentication = true;
-                }
-            } else {
-                // Could be HTML or unexpected JSON
-                replyResponse.errorMessage = "Unexpected response from server";
+                    replyResponse.errorMessage = "Captcha required to post.";
+                    break;
+                case "hashban":
+                    replyResponse.probablyBanned = true;
+                    replyResponse.errorMessage = "Your post was blocked (hash ban).";
+                    break;
+                case "idban":
+                case "ban":
+                    replyResponse.probablyBanned = true;
+                    replyResponse.errorMessage = json.optString("data",
+                            "You are banned from this board.");
+                    break;
+                default:
+                    // Show the actual JSON so future debugging is easy.
+                    replyResponse.errorMessage = "Server response: status=\"" + status
+                            + "\" data=" + json.opt("data");
+                    Logger.w(TAG, "handlePost: unhandled status — " + result);
+                    break;
             }
         } catch (Exception e) {
-            // Might be a redirect or HTML error page
-            if (result.contains("Error") || result.contains("fail")) {
-                replyResponse.errorMessage = "Post failed (possible server error)";
+            Logger.e(TAG, "handlePost: JSON parse failed — body=" + result, e);
+            // If the body contains an obvious error phrase use it; otherwise
+            // report the raw body so it appears in the error toast.
+            if (result.length() > 0) {
+                replyResponse.errorMessage = "Post failed: " + result.substring(0, Math.min(result.length(), 120));
             } else {
                 replyResponse.errorMessage = "Failed to parse server response";
             }
@@ -220,9 +276,34 @@ public class LynxchanActions extends CommonSite.CommonActions {
 
     @Override
     public boolean isLoggedIn() {
-        HttpUrl url = ((LynxchanEndpoints) site.endpoints()).root();
-        String cookies = CookieManager.getInstance().getCookie(url.toString());
-        if (cookies == null) return false;
+        // Check cookies across all known domains for this site, since the user
+        // may have verified on a mirror (e.g. 8chan.st) while API requests go
+        // to another domain (e.g. 8chan.moe).
+        HttpUrl root = ((LynxchanEndpoints) site.endpoints()).root();
+        String host = root.host();
+        
+        // Collect cookies from the root URL and known 8chan mirrors
+        String[] urls = {root.toString()};
+        if (host.contains("8chan")) {
+            urls = new String[]{
+                "https://8chan.moe/",
+                "https://8chan.st/",
+                "https://8chan.cc/"
+            };
+        }
+        
+        StringBuilder allCookies = new StringBuilder();
+        CookieManager cm = CookieManager.getInstance();
+        for (String url : urls) {
+            String c = cm.getCookie(url);
+            if (c != null && !c.isEmpty()) {
+                if (allCookies.length() > 0) allCookies.append("; ");
+                allCookies.append(c);
+            }
+        }
+        
+        String cookies = allCookies.toString();
+        if (cookies.isEmpty()) return false;
         
         // Match any TOS cookie (e.g., TOS, TOS20250418) and POW_TOKEN
         boolean hasTOS = cookies.contains("TOS=") || cookies.matches(".*\\bTOS\\d+\\b.*");
