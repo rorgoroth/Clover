@@ -386,32 +386,37 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     }
 
     private void setGifFile(File file) {
-        GifDrawable drawable;
-        try {
-            drawable = new GifDrawable(file.getAbsolutePath());
-
-            // For single frame gifs, use the scaling image instead
-            // The region decoder doesn't work for gifs, so we unfortunately
-            // have to use the more memory intensive non tiling mode.
-            if (drawable.getNumberOfFrames() == 1) {
-                drawable.recycle();
-                setBitImageFileInternal(file, false, Mode.GIF);
+        // Decode on a background thread, then post view creation back to main.
+        new Thread(() -> {
+            GifDrawable drawable;
+            try {
+                drawable = new GifDrawable(file.getAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+                AndroidUtils.runOnUiThread(() -> onError(new Exception(e.getMessage())));
+                return;
+            } catch (OutOfMemoryError e) {
+                Runtime.getRuntime().gc();
+                e.printStackTrace();
+                AndroidUtils.runOnUiThread(this::onOutOfMemoryError);
                 return;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-            onError(new Exception());
-            return;
-        } catch (OutOfMemoryError e) {
-            Runtime.getRuntime().gc();
-            e.printStackTrace();
-            onOutOfMemoryError();
-            return;
-        }
 
-        GifImageView view = new GifImageView(getContext());
-        view.setImageDrawable(drawable);
-        onModeLoaded(Mode.GIF, view);
+            // For single-frame GIFs use the scaling image viewer instead.
+            if (drawable.getNumberOfFrames() == 1) {
+                drawable.recycle();
+                AndroidUtils.runOnUiThread(() -> setBitImageFileInternal(file, false, Mode.GIF));
+                return;
+            }
+
+            // All view operations must happen on the main thread.
+            final GifDrawable finalDrawable = drawable;
+            AndroidUtils.runOnUiThread(() -> {
+                GifImageView view = new GifImageView(getContext());
+                view.setImageDrawable(finalDrawable);
+                onModeLoaded(Mode.GIF, view);
+            });
+        }, "gif-decode").start();
     }
 
     private void setVideo(String videoUrl) {
@@ -548,11 +553,13 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
 
     private void cleanupVideo(PlayerView videoView) {
         Player player = videoView.getPlayer();
+        videoView.setPlayer(null);
         if (player != null) {
             player.removeListener(this);
-            player.release();
+            final Player playerToRelease = player;
+            new Thread(playerToRelease::release, "exo-release").start();
         }
-        if (videoView.getPlayer() == exoPlayer) {
+        if (player == exoPlayer) {
             exoPlayer = null;
         }
     }
@@ -720,9 +727,13 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             videoRequest = null;
         }
         if (exoPlayer != null) {
-            // ExoPlayer will keep loading resources if we don't release it here.
-            exoPlayer.release();
+            // Detach from the PlayerView on main so the surface is freed immediately
+            if (exoVideoView != null) {
+                exoVideoView.setPlayer(null);
+            }
+            final ExoPlayer playerToRelease = exoPlayer;
             exoPlayer = null;
+            new Thread(playerToRelease::release, "exo-release").start();
         }
     }
 
