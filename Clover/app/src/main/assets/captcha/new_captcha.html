@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -56,24 +56,14 @@
             letter-spacing: 0.03em;
             text-shadow: __C_TIMER_SHADOW__;
         }
-        #t-msg-main a {
-            color: #4a9eff;
-            text-decoration: underline;
-            font-weight: 600;
-        }
-        #t-msg-main a:focus {
-            outline: 2px solid __C_LINK__;
-            outline-offset: 2px;
-        }
         #t-msg-btn, 
         .t-msg-btn {
             font-size: 16px;
             padding: 10px 20px;
             margin-top: 18px;
-            cursor: pointer;
-            background: __C_ACCENT__;
-            color: #fff;
-            border: 1px solid rgba(0,0,0,0.1);
+            background: __C_BTN_BG__;
+            color: __C_BTN_FG__;
+            border: 1px solid __C_BTN_BORDER__;
             border-radius: 6px;
             font-weight: 500;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -87,6 +77,40 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        /* Overlay used by captcha expiry timer */
+        .t-client-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background: __C_BG_OVERLAY__;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            color: __C_FG__;
+            text-align: center;
+        }
+        .t-client-overlay .message {
+            font-size: 16px;
+            color: __C_FG__;
+            margin-bottom: 20px;
+        }
+        .t-client-overlay .btn {
+            font-size: 16px;
+            padding: 10px 20px;
+            background: __C_BTN_BG__;
+            color: __C_BTN_FG__;
+            border: 1px solid __C_BTN_BORDER__;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
         /* Native 4chan tasks (challenges) UI */
         #t-native {
             display: none;
@@ -106,7 +130,6 @@
             background: __C_BG__;
             padding: 8px 35px 8px 10px;
             border-bottom: 1px solid __C_INPUT_BORDER__;
-            box-sizing: border-box;
         }
         #t-expiry-wrap {
             font-size: 12px;
@@ -139,7 +162,7 @@
             align-items: stretch;
             margin-bottom: 16px;
         }
-        #t-native-target-wrap {
+        .t-target-wrap {
             flex-shrink: 0;
             width: 92px;
             height: 92px;
@@ -147,22 +170,22 @@
             border-radius: 4px;
             overflow: hidden;
             background: __C_INPUT_BG__;
-            cursor: zoom-in;
-            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            /* transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); */
             position: relative;
         }
-        #t-native-target-wrap.zoomed {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(3);
-            box-shadow: 0 0 100vmax rgba(0,0,0,0.8);
-            border: 1px solid #fff;
-            width: 100px;
-            height: 100px;
-            cursor: zoom-out;
+        .t-target-wrap.zoomed {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) scale(3) !important;
+            box-shadow: 0 0 100vmax rgba(0,0,0,0.8) !important;
+            border: 1px solid #fff !important;
+            width: 100px !important;
+            height: 100px !important;
+            cursor: zoom-out !important;
+            z-index: 9999 !important;
         }
-        #t-native-target-wrap img {
+        .t-target-wrap img {
             width: 100%;
             height: 100%;
             object-fit: contain;
@@ -189,7 +212,6 @@
             height: 86px;
             border: 3px solid transparent;
             border-radius: 4px;
-            cursor: pointer;
             overflow: hidden;
             background: __C_INPUT_BG__;
             box-sizing: border-box;
@@ -197,7 +219,7 @@
         }
         .t-choice:hover,
         .t-choice:focus {
-            border-color: __C_LINK__;
+            border-color: transparent;
         }
         .t-choice.selected {
             border-color: #4caf50;
@@ -210,9 +232,11 @@
 
         #t-native-next {
             font-size: 16px;
-            padding: 10px 20px;
-            margin-top: 8px;
-            cursor: pointer;
+            padding: 14px 20px;
+            margin: 12px auto 0 auto;
+            display: block;
+            width: 100%;
+            max-width: 240px;
             background: __C_BTN_BG__;
             color: __C_BTN_FG__;
             border: 1px solid __C_BTN_BORDER__;
@@ -312,6 +336,7 @@
             opacity: 0.8;
         }
     </style>
+    <title></title>
 </head>
 <body>
 <script type="application/json" id="clover-payload">__CLOVER_JSON__</script>
@@ -334,13 +359,13 @@
             <div class="t-slider-viewport">
                 <div id="t-slider-track-stepped" class="t-slider-track"></div>
             </div>
-            <input type="range" id="t-slider-input-stepped" class="t-slider-input" min="0" value="0" step="1">
+            <label for="t-slider-input-stepped"></label><input type="range" id="t-slider-input-stepped" class="t-slider-input" min="0" value="0" step="1">
         </div>
         <!-- Traditional stepped UI -->
         <div id="t-stepped-ui" style="display:none;">
             <div id="t-native-instructions">
                 <div id="t-native-instructions-text"></div>
-                <div id="t-native-target-wrap"><img id="t-native-target" src="" alt="Target"></div>
+                <div class="t-target-wrap" id="t-native-target-wrap"><img id="t-native-target" src="" alt="Target"></div>
             </div>
             <div id="t-native-choices-wrap"><div id="t-native-choices"></div></div>
             <button id="t-native-next" type="button">Next</button>
@@ -348,7 +373,7 @@
         <!-- Single view UI -->
         <div id="t-single-ui" style="display:none;">
             <div id="t-single-tasks-container"></div>
-            <button id="t-native-submit" type="button" class="t-msg-btn" style="width:100%; font-size:16px; padding:10px 20px; margin-top:8px; cursor:pointer; background:__C_BTN_BG__; color:__C_BTN_FG__; border:1px solid __C_BTN_BORDER__; border-radius:6px; font-weight:500;">Submit</button>
+            <button id="t-native-submit" type="button" class="t-msg-btn" style="width:100%;">Submit</button>
         </div>
     </div>
 </div>
@@ -632,10 +657,37 @@ function hideMsgButton() {
 }
 
 var expiryInterval = null;
-var expirySeconds = 120;
+// Exact expiry time is 115 secs, I added 1 additional sec for reasons
+var expirySeconds = 116;
+
+function showClientOverlay(msg) {
+    var tm = document.getElementById('t-msg');
+    if (tm) tm.style.display = 'none';
+
+    var old = document.getElementById('t-client-overlay');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var ov = document.createElement('div');
+    ov.id = 't-client-overlay';
+    ov.className = 't-client-overlay';
+    var txt = document.createElement('div');
+    txt.className = 'message';
+    // allow newline in message to create a line break
+    txt.innerHTML = msg.replace(/\n/g, '<br>');
+    ov.appendChild(txt);
+    var btn = document.createElement('button');
+    btn.className = 'btn';
+    btn.textContent = 'Get Captcha';
+    btn.onclick = function() {
+        requestCaptcha();
+        if (ov.parentNode) ov.parentNode.removeChild(ov);
+    };
+    ov.appendChild(btn);
+    document.body.appendChild(ov);
+}
+
 function startExpiryTimer(ttl) {
     if (expiryInterval) clearInterval(expiryInterval);
-    expirySeconds = (ttl && ttl > 0) ? Math.round(ttl) : 120;
+    expirySeconds = (ttl && ttl > 0) ? Math.round(ttl) : 116;
     updateExpiryDisplay();
     expiryInterval = setInterval(function() {
         expirySeconds--;
@@ -643,10 +695,7 @@ function startExpiryTimer(ttl) {
             clearInterval(expiryInterval);
             expirySeconds = 0;
             document.getElementById('t-native').style.display = 'none';
-            document.getElementById('t-msg').style.display = 'block';
-            document.getElementById('t-msg-main').textContent = 'Captcha expired. Please request a new one.';
-            document.getElementById('t-msg-secondary').textContent = '';
-            showMsgButton('Get Captcha', false);
+            showClientOverlay('Captcha expired.\nPlease request a new one.');
         }
         updateExpiryDisplay();
     }, 1000);
@@ -709,6 +758,8 @@ function buildFromJson(data) {
             document.getElementById('t-msg-secondary').textContent = '0s';
             document.getElementById('t-msg-main').textContent = 'You can now request a captcha.';
             showMsgButton('Get Captcha', false);
+            // Automatically request captcha instead of showing button, remove the lines above if so
+            // setTimeout(requestCaptcha, 500);
             return;
         }
         showMsgButton('Get Captcha', true, pcd);
@@ -973,6 +1024,7 @@ function buildSingleViewTasksUI(data) {
 
         if (target) {
             var targetWrap = document.createElement('div');
+            targetWrap.className = 't-target-wrap';
             targetWrap.style.flexShrink = '0';
             targetWrap.style.width = '80px';
             targetWrap.style.height = '80px';

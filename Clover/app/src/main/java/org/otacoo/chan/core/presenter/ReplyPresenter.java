@@ -88,6 +88,9 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
     private int selectedQuote = -1;
     
     private int editingAttachmentIndex = -1;
+    
+    /** Stores authentication error message to display when switching to authentication page */
+    private String authenticationErrorMessage = null;
 
     @Inject
     public ReplyPresenter(ReplyManager replyManager,
@@ -381,6 +384,9 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
                         Loadable.forThread(loadable.site, loadable.board, replyResponse.postNo)));
             }
         } else if (replyResponse.requireAuthentication) {
+            // Store the error message to display in the authentication layout
+            authenticationErrorMessage = replyResponse.errorMessage != null ? 
+                replyResponse.errorMessage : "Captcha authentication failed.\nPlease solve the captcha again.";
             switchPage(Page.AUTHENTICATION, true);
         } else {
             String errorMessage = getString(R.string.reply_error);
@@ -668,6 +674,12 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
                     // callback.initializeAuthentication already handles reuse/destruction based on type
                     callback.initializeAuthentication(loadable, authentication, this);
                     callback.setPage(Page.AUTHENTICATION, true);
+                    
+                    // Display the error message if one was captured from the failed post
+                    if (authenticationErrorMessage != null) {
+                        callback.showAuthenticationError(authenticationErrorMessage);
+                        authenticationErrorMessage = null;
+                    }
 
                     break;
             }
@@ -871,5 +883,7 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
         void onFallbackToV1CaptchaView();
 
         void destroyCurrentAuthentication();
+        
+        void showAuthenticationError(String errorMessage);
     }
 }

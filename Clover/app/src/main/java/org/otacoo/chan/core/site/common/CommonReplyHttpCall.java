@@ -83,7 +83,15 @@ public abstract class CommonReplyHttpCall extends HttpCall {
                 || resultLower.contains("verification failed")
                 || resultLower.contains("is_error = \"true\"")) {
             Logger.w(TAG, "process: Captcha failure detected in response content");
-            replyResponse.requireAuthentication = true; 
+            replyResponse.requireAuthentication = true;
+            
+            // Extract and store the error message from the response so it can be shown in the auth layout
+            Matcher errorMessageMatcher = ERROR_MESSAGE.matcher(result);
+            if (errorMessageMatcher.find()) {
+                replyResponse.errorMessage = Jsoup.parse(errorMessageMatcher.group(1)).body().text();
+                Logger.w(TAG, "Captcha error message: " + replyResponse.errorMessage);
+            }
+            
             return;
         }
 

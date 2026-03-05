@@ -673,6 +673,13 @@ public class ReplyLayout extends LoadView implements
     }
 
     @Override
+    public void showAuthenticationError(String errorMessage) {
+        if (authenticationLayout instanceof NewCaptchaLayout) {
+            ((NewCaptchaLayout) authenticationLayout).showAuthenticationError(errorMessage);
+        }
+    }
+
+    @Override
     public void loadDraftIntoViews(Reply draft) {
         name.setText(draft.name);
         subject.setText(draft.subject);

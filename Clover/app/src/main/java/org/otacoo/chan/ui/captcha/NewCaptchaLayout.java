@@ -169,6 +169,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
     private void onCaptchaResponse(String response) {
         if (response == null || response.trim().isEmpty()) return;
         Logger.i(TAG, "onCaptchaResponse: " + response);
+        // always show responses from the page regardless of preference
         maybeToast(response, false);
         // #t-resp means we should not proceed to submission until the user has seen the message.
     }
@@ -229,7 +230,6 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
         
         // Preserve active challenge or error overlay if user returns to it.
         if (showingActiveCaptcha || showingOverlay) {
-            Logger.i(TAG, "reset: preserving active captcha or overlay view");
             maybeToast(showingOverlay ? "Returning to error details." : "Returning to active captcha session.", false);
             onCaptchaLoaded();
             return;
@@ -268,6 +268,15 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
     @Override
     public void hardReset() {
         hardReset(true, false);
+    }
+
+    /**
+     * Public method to display an error message overlay when authentication fails.
+     * Called from ReplyPresenter after a post attempt fails with a captcha error.
+     */
+    public void showAuthenticationError(String errorMessage) {
+        maybeToast(errorMessage, false);
+        showOverlay(errorMessage);
     }
 
     // Performs a full reload of the 4chan captcha endpoint
@@ -463,7 +472,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                 // if we see the fingerprint landing page, tokens are likely stale.
                 if (body.contains("mcl.io") || body.contains("spur.us")) {
                     Logger.i(TAG, "interceptCaptchaRequest: fingerprint page detected, clearing stale tokens");
-                    maybeToast("Captcha tokens (mcl.js) appear to have expired; refreshing...", false);
+                    maybeToast("Captcha tokens (mcl.js) appear to have expired; refreshing...", true);
                     clearFingerprintCookies();
                     skipInterceptNextLoad = true;
                     return null;
@@ -481,7 +490,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                         int cd = tw.optInt("cd", -1);
                         if (!hasTasks && (pcd <= 0 && cd <= 0)) {
                             Logger.i(TAG, "interceptCaptchaRequest: cooldown finished but no challenge, assuming stale tokens");
-                            maybeToast("No captcha challenge arrived after cooldown; tokens may be bad, reloading.", false);
+                            maybeToast("No captcha challenge arrived after cooldown; tokens may be bad, reloading.", true);
                             clearFingerprintCookies();
                             skipInterceptNextLoad = true;
                             return null;
@@ -554,14 +563,13 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                 if (onCooldownNow()) {
                     globalCooldowns.remove(getGlobalKey());
                     cooldownActive = false;
-                    maybeToast("4chan: Cooldown finished. You can now request a captcha.", false);
+                    maybeToast("Cooldown finished. You can now request a captcha.", false);
                 }
                 onCaptchaEntered("", "");
                 return;
             }
 
-            showOverlay("Tap to request a captcha.");
-            maybeToast("Post successful.", false);
+            showOverlay("Tap to request a captcha again.");
         } catch (Exception e) {
             Logger.e(TAG, "Failed to post: applyPayload failed", e);
         }
@@ -575,7 +583,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                 globalExpiries.remove(key);
                 globalPayloads.remove(key);
                 if (visibleInstances.contains(this)) {
-                    maybeToast("4chan: Captcha session expired.", false);
+                    maybeToast("Captcha session expired.", false);
                 }
             }
         }, seconds * 1000L);
@@ -603,7 +611,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                     } else if (full.contains("Post successful")) {
                         // Success - no reload needed here, callback handles it
                         Logger.i(TAG, "Post successful detected on /post page");
-                    } else if (full.contains("Error") || full.contains("Verification") || full.contains("mistyped") || full.contains("Video Games")) {
+                    } else if (full.contains("Error") || full.contains("Verification") || full.contains("mistyped")) {
                         // Generic error detection fallback
                         String display = "Post failed or verification error.";
                         if (full.contains("Error:")) {
@@ -611,7 +619,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                             int end = Math.min(start + 120, full.length());
                             display = full.substring(start, end).replace("\n", " ") + "...";
                         }
-                        maybeToast(display, false);
+                        maybeToast(display, true);
                         showOverlay(display);
                     } else {
                         // Unrecognized state – reload captcha
@@ -793,14 +801,14 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
         boolean isError = false;
         if (msg.toLowerCase().contains("failed to load") || msg.toLowerCase().contains("error") || msg.toLowerCase().contains("fail")) {
             isError = true;
-            post(() -> maybeToast(msg, false));
+            post(() -> maybeToast(msg, true));
         }
 
         String overlayHtml;
         if (isError) {
-            overlayHtml = "<div style=\"color:#e53935;font-weight:bold;margin-bottom:15px;font-size:16px;\">Looks like there was an error while posting:</div>" +
-                         "<div style=\"margin-bottom:20px;font-style:italic;opacity:0.9;\">\"" + msg.replace("'", "\\'") + "\"</div>" +
-                         "<div>Try to get a new captcha or reset your session.</div>";
+            overlayHtml = "<div style=\"color:" + fg + ";font-weight:bold;margin-bottom:15px;font-size:16px;\">Looks like there was an error while posting:</div>" +
+                         "<div style=\"margin-bottom:20px;font-style:italic;font-weight:normal;color:#e53935;\">\"" + msg.replace("'", "\\'") + "\"</div>" +
+                         "<div style=\"color:" + fg + ";font-weight:bold;font-size:16px;\">Try to get a new captcha or reset your session.</div>";
         } else {
             overlayHtml = "<div>" + msg.replace("'", "\\'") + "</div>";
         }
@@ -838,7 +846,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
     private void startCooldownTracking(int seconds) {
         String key = getGlobalKey();
         globalCooldowns.put(key, System.currentTimeMillis() + (seconds * 1000L));
-        maybeToast("4chan: Cooldown to request new captcha started: (" + seconds + "s)", false);
+        maybeToast("Cooldown to request new captcha started: (" + seconds + "s)", false);
     }
 
     // Returns true if the WebView already has a valid cf_clearance cookie
@@ -928,7 +936,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
         if (!TextUtils.isEmpty(err) && err.length() < 500) {
             final String finalErr = err;
             AndroidUtils.runOnUiThread(() -> {
-                maybeToast(finalErr, false);
+                maybeToast(finalErr, true);
                 showOverlay(finalErr);
             });
         }
