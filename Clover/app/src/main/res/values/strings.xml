@@ -343,6 +343,7 @@ If the pattern matches then the post can be hidden or highlighted.<br>
     <string name="delete_image_only">Only delete the image</string>
     <string name="delete_error">Error deleting post</string>
 
+    <string name="video_playback_failed">This video cannot be played.</string>
     <string name="video_playback_warning_title">WebM video error</string>
     <string name="video_playback_warning">
 "The WebM video failed to play. This might be a problem with the hardware of your phone.

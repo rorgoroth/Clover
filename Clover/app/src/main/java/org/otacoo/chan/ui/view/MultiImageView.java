@@ -32,7 +32,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -47,21 +46,21 @@ import android.widget.Toast;
 import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
 import androidx.lifecycle.DefaultLifecycleObserver;
-import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.media3.common.C;
 import androidx.media3.common.MediaItem;
+import androidx.media3.common.MimeTypes;
 import androidx.media3.common.PlaybackException;
 import androidx.media3.common.Player;
 import androidx.media3.common.Tracks;
+import androidx.media3.common.util.UnstableApi;
 import androidx.media3.datasource.DataSource;
 import androidx.media3.datasource.DefaultDataSource;
 import androidx.media3.exoplayer.ExoPlayer;
 import androidx.media3.exoplayer.source.ProgressiveMediaSource;
 import androidx.media3.ui.PlayerView;
-
-import com.davemorrissey.labs.subscaleview.ImageSource;
 
 import org.otacoo.chan.R;
 import org.otacoo.chan.core.cache.FileCache;
@@ -81,10 +80,10 @@ import java.io.IOException;
 import javax.inject.Inject;
 
 import okhttp3.Call;
-import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
@@ -204,6 +203,14 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         return bigImage;
     }
 
+    public boolean isZoomed() {
+        CustomScaleImageView scaleImageView = findScaleImageView();
+        if (scaleImageView != null) {
+            return scaleImageView.getScale() > scaleImageView.getMinScale() + 0.01f;
+        }
+        return false;
+    }
+
     public GifImageView findGifImageView() {
         GifImageView gif = null;
         for (int i = 0; i < getChildCount(); i++) {
@@ -247,7 +254,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         ((StartActivity) getContext()).getLifecycle().removeObserver(this);
-        cancelLoad();
+        cleanup();
     }
 
     private void setThumbnail(String thumbnailUrl, boolean center) {
@@ -275,15 +282,19 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 try {
-                    if (response.isSuccessful() && response.body() != null) {
-                        byte[] data = response.body().bytes();
-                        Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
-                        if (bitmap != null && (!hasContent || mode == Mode.LOWRES)) {
-                            AndroidUtils.runOnUiThread(() -> {
-                                ImageView thumbnail = new ImageView(getContext());
-                                thumbnail.setImageBitmap(bitmap);
-                                onModeLoaded(Mode.LOWRES, thumbnail);
-                            });
+                    if (response.isSuccessful()) {
+                        try (ResponseBody body = response.body()) {
+                            if (body != null) {
+                                byte[] data = body.bytes();
+                                Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+                                if (bitmap != null && (!hasContent || mode == Mode.LOWRES)) {
+                                    AndroidUtils.runOnUiThread(() -> {
+                                        ImageView thumbnail = new ImageView(getContext());
+                                        thumbnail.setImageBitmap(bitmap);
+                                        onModeLoaded(Mode.LOWRES, thumbnail);
+                                    });
+                                }
+                            }
                         }
                     }
                 } finally {
@@ -464,6 +475,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         Toast.makeText(getContext(), R.string.file_not_viewable, Toast.LENGTH_LONG).show();
     }
 
+    @OptIn(markerClass = UnstableApi.class)
     private void setVideoFile(final File file) {
         if (ChanSettings.videoOpenExternal.get()) {
             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -471,53 +483,66 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             intent.setDataAndType(fileUri, "video/*");
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.setClipData(ClipData.newRawUri(null, fileUri));
-
             AndroidUtils.openIntent(intent);
-
             onModeLoaded(Mode.MOVIE, videoView);
-        } else {
-            exoVideoView = (PlayerView) LayoutInflater.from(getContext()).inflate(R.layout.clover_player_view, this, false);
-            exoPlayer = new ExoPlayer.Builder(getContext())
-                    .setSeekBackIncrementMs(5000)
-                    .setSeekForwardIncrementMs(15000)
-                    .build();
-            exoVideoView.setPlayer(exoPlayer);
-            exoVideoView.setControllerShowTimeoutMs(ChanSettings.videoExoPlayerTimeout.get() * 1000);
-
-            DataSource.Factory dataSourceFactory = new DefaultDataSource.Factory(getContext());
-            ProgressiveMediaSource videoSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
-                    .createMediaSource(MediaItem.fromUri(android.net.Uri.fromFile(file)));
-
-            exoPlayer.setRepeatMode(ChanSettings.videoAutoLoop.get() ?
-                    Player.REPEAT_MODE_ALL : Player.REPEAT_MODE_OFF);
-
-            exoPlayer.setMediaSource(videoSource);
-            exoPlayer.prepare();
-            exoPlayer.addListener(this);
-            exoPlayer.setVolume(0f);
-
-            playView.setVisibility(View.GONE);
-
-            addView(exoVideoView, 0);
-            exoPlayer.setPlayWhenReady(true);
-            callback.onVideoLoaded(this);
+            return;
         }
+
+        // Inflate ExoPlayer view
+        exoVideoView = (PlayerView) LayoutInflater.from(getContext())
+                .inflate(R.layout.clover_player_view, this, false);
+
+        DataSource.Factory dataSourceFactory = new DefaultDataSource.Factory(getContext());
+
+        // Build player
+        exoPlayer = new ExoPlayer.Builder(getContext())
+                .setSeekBackIncrementMs(5000)
+                .setSeekForwardIncrementMs(15000)
+                .build();
+
+        exoVideoView.setPlayer(exoPlayer);
+        exoVideoView.setControllerShowTimeoutMs(ChanSettings.videoExoPlayerTimeout.get() * 1000);
+
+        // Build MediaItem
+        MediaItem.Builder mediaItemBuilder = new MediaItem.Builder()
+                .setUri(Uri.fromFile(file));
+
+        // Use WebM hint to help extractor selection
+        if (file.getName().toLowerCase().endsWith(".webm")) {
+            mediaItemBuilder.setMimeType(MimeTypes.VIDEO_WEBM);
+        }
+
+        MediaItem mediaItem = mediaItemBuilder.build();
+
+        // MediaSource
+        ProgressiveMediaSource videoSource = new ProgressiveMediaSource.Factory(dataSourceFactory)
+                .createMediaSource(mediaItem);
+
+        // Player settings
+        exoPlayer.setRepeatMode(ChanSettings.videoAutoLoop.get() ?
+                Player.REPEAT_MODE_ALL : Player.REPEAT_MODE_OFF);
+        exoPlayer.setMediaSource(videoSource);
+        exoPlayer.prepare();
+        exoPlayer.addListener(this);
+        exoPlayer.setVolume(0f);
+
+        // Add player view
+        playView.setVisibility(View.GONE);
+        addView(exoVideoView, 0);
+
+        exoPlayer.setPlayWhenReady(true);
+        callback.onVideoLoaded(this);
     }
 
     private boolean hasMediaPlayerAudioTracks(MediaPlayer mediaPlayer) {
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-                for (MediaPlayer.TrackInfo trackInfo : mediaPlayer.getTrackInfo()) {
-                    if (trackInfo.getTrackType() == MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO) {
-                        return true;
-                    }
+            for (MediaPlayer.TrackInfo trackInfo : mediaPlayer.getTrackInfo()) {
+                if (trackInfo.getTrackType() == MediaPlayer.TrackInfo.MEDIA_TRACK_TYPE_AUDIO) {
+                    return true;
                 }
-
-                return false;
-            } else {
-                // It'll just show the icon without doing anything. Remove when 4.0 is dropped.
-                return true;
             }
+
+            return false;
         } catch (RuntimeException e) {
             // getTrackInfo() raises an IllegalStateException on some devices.
             // Samsung even throws a RuntimeException.
@@ -554,6 +579,23 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     private void onVideoError() {
         if (!videoError) {
             videoError = true;
+            
+            // Release the player immediately on error to prevent further instability
+            if (exoPlayer != null) {
+                try {
+                    exoPlayer.stop();
+                    exoPlayer.release();
+                } catch (Exception e) {
+                    Logger.e(TAG, "Error while releasing player after playback failure", e);
+                } finally {
+                    exoPlayer = null;
+                }
+            }
+
+            if (exoVideoView != null) {
+                exoVideoView.setPlayer(null);
+            }
+
             callback.onVideoError(this);
         }
     }
@@ -568,7 +610,12 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         videoView.setPlayer(null);
         if (player != null) {
             player.removeListener(this);
-            player.release();
+            try {
+                player.stop();
+                player.release();
+            } catch (Exception e) {
+                Logger.e(TAG, "Error while cleaning up PlayerView", e);
+            }
         }
         if (player == exoPlayer) {
             exoPlayer = null;
@@ -726,7 +773,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         }
     }
 
-    private void cancelLoad() {
+    public void cleanup() {
         if (thumbnailCall != null) {
             thumbnailCall.cancel();
             thumbnailCall = null;
@@ -743,13 +790,35 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             videoRequest.cancel();
             videoRequest = null;
         }
+        
+        // Stop all active view content
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (child instanceof VideoView) {
+                cleanupVideo((VideoView) child);
+            } else if (child instanceof PlayerView) {
+                cleanupVideo((PlayerView) child);
+            } else if (child instanceof GifImageView) {
+                GifImageView gif = (GifImageView) child;
+                if (gif.getDrawable() instanceof GifDrawable) {
+                    ((GifDrawable) gif.getDrawable()).stop();
+                }
+            }
+        }
+
         if (exoPlayer != null) {
             // Detach from the PlayerView on main so the surface is freed immediately
             if (exoVideoView != null) {
                 exoVideoView.setPlayer(null);
             }
-            exoPlayer.release();
-            exoPlayer = null;
+            try {
+                exoPlayer.stop();
+                exoPlayer.release();
+            } catch (Exception e) {
+                Logger.e(TAG, "Error during final exoPlayer cleanup", e);
+            } finally {
+                exoPlayer = null;
+            }
         }
     }
 
