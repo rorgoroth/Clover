@@ -73,10 +73,7 @@ public class EmailVerificationController extends Controller {
 
         webView = new AuthWebView(context);
         
-        // 8chan.moe specific automation
         webView.setWebViewClient(new WebViewClient() {
-            private boolean sawChallenge = false;
-            
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
@@ -85,11 +82,9 @@ public class EmailVerificationController extends Controller {
                 boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st") || initialUrl.contains("8chan.cc"));
 
                 if (is8chan) {
-                    if (pageTitle != null && (pageTitle.contains("POWBlock") || pageTitle.contains("Checking"))) {
-                        sawChallenge = true;
-                    } else if (sawChallenge || !url.contains("pow")) {
-                        // We are no longer on the challenge page, which means it redirected successfully
-                        // Let's ensure cookies are completely synced then close!
+                    checkCookies();
+                } else if (url.contains("sys.4chan.org/signin") && url.contains("action=verify")) {
+                    if (pageTitle != null && (pageTitle.contains("Verified") || pageTitle.contains("Success"))) {
                         completeVerification();
                     }
                 }
@@ -104,6 +99,26 @@ public class EmailVerificationController extends Controller {
         if (requiredCookies != null && requiredCookies.length > 0) {
             Toast.makeText(context, "Please solve the verification challenge to continue.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void checkCookies() {
+        if (isFinished || !alive) return;
+
+        AuthWebView.runOnWebViewThread(() -> {
+            String url = webView.getUrl();
+            if (url == null) url = initialUrl;
+            
+            String cookies = CookieManager.getInstance().getCookie(url);
+            boolean hasToken = cookies != null && cookies.contains("POW_TOKEN");
+            // Match any TOS cookie (e.g. TOS20250413)
+            boolean hasTOS = cookies != null && java.util.regex.Pattern.compile("\\bTOS\\w*=").matcher(cookies).find();
+
+            if (hasToken && hasTOS) {
+                completeVerification();
+            } else {
+                webView.postDelayed(this::checkCookies, 1000);
+            }
+        });
     }
 
     private void completeVerification() {
