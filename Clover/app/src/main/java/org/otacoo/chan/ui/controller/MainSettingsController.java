@@ -20,8 +20,14 @@ package org.otacoo.chan.ui.controller;
 import static org.otacoo.chan.Chan.inject;
 import static org.otacoo.chan.utils.AndroidUtils.getString;
 
-import android.animation.ValueAnimator;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.app.Activity;
+import android.view.animation.AccelerateInterpolator;
+import android.widget.ImageView;
+import java.util.Random;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
@@ -64,8 +70,6 @@ import java.util.Locale;
 import java.util.Set;
 
 import javax.inject.Inject;
-
-import pl.droidsonroids.gif.GifImageView;
 
 public class MainSettingsController extends SettingsController implements SettingsPresenter.Callback {
     @Inject
@@ -465,21 +469,56 @@ public class MainSettingsController extends SettingsController implements Settin
 
                         developerView.view.setVisibility(developer ? View.VISIBLE : View.GONE);
                     }
-                    final GifImageView iv = new GifImageView(context);
-                    iv.setImageResource(R.drawable.ic_task_description);
-                    if (iv.getDrawable() != null) {
-                        iv.setX(-iv.getDrawable().getIntrinsicWidth());
-                        iv.setY(navigationController.view.getHeight() - iv.getDrawable().getIntrinsicHeight());
-                        navigationController.view.addView(iv);
-                        iv.getLayoutParams().width = ViewGroup.LayoutParams.WRAP_CONTENT;
-                        iv.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                        iv.setLayoutParams(iv.getLayoutParams());
-                        ValueAnimator animator = ValueAnimator.ofFloat(iv.getX() - 100, navigationController.view.getWidth() + 100);
-                        animator.setDuration(7500);
-                        animator.addUpdateListener(animation ->
-                                iv.setX((float) animation.getAnimatedValue()));
-                        animator.setRepeatCount(ValueAnimator.INFINITE);
-                        animator.start();
+                    final int PETAL_COUNT = 12;
+                    final int BASE_DURATION_MS = 5000;
+                    final Random rng = new Random();
+                    final int containerW = navigationController.view.getWidth();
+                    final int containerH = navigationController.view.getHeight();
+                    final int petalSize = AndroidUtils.dp(36);
+
+                    final int[] petalColors = {
+                            0xFF64B5F6, // light blue
+                            0xFFFFD54F, // gold
+                            0xFF81C784  // light green
+                    };
+
+                    for (int p = 0; p < PETAL_COUNT; p++) {
+                        final ImageView petal = new ImageView(context);
+                        petal.setImageResource(R.drawable.ic_task_description);
+                        petal.setColorFilter(petalColors[p % petalColors.length], android.graphics.PorterDuff.Mode.SRC_IN);
+
+                        float startX = rng.nextInt(Math.max(1, containerW));
+                        float driftX = (rng.nextFloat() - 0.5f) * containerW * 0.4f;
+                        float startY = -petalSize - rng.nextInt(Math.max(1, containerH / 3));
+                        float endY = containerH + petalSize;
+                        int duration = BASE_DURATION_MS + rng.nextInt(2500);
+
+                        petal.setX(startX);
+                        petal.setY(startY);
+                        navigationController.view.addView(petal, new ViewGroup.LayoutParams(petalSize, petalSize));
+
+                        AnimatorSet motionSet = new AnimatorSet();
+                        motionSet.playTogether(
+                                ObjectAnimator.ofFloat(petal, View.Y, startY, endY),
+                                ObjectAnimator.ofFloat(petal, View.X, startX, startX + driftX),
+                                ObjectAnimator.ofFloat(petal, View.ROTATION, 0f, (rng.nextFloat() - 0.5f) * 540f)
+                        );
+                        motionSet.setDuration(duration);
+                        motionSet.setInterpolator(new AccelerateInterpolator(1.1f));
+                        motionSet.addListener(new AnimatorListenerAdapter() {
+                            @Override
+                            public void onAnimationEnd(Animator animation) {
+                                if (petal.getParent() instanceof ViewGroup) {
+                                    ((ViewGroup) petal.getParent()).removeView(petal);
+                                }
+                            }
+                        });
+                        motionSet.start();
+
+                        ObjectAnimator fadeOut = ObjectAnimator.ofFloat(petal, View.ALPHA, 1f, 0f);
+                        fadeOut.setStartDelay((long) (duration * 0.55));
+                        fadeOut.setDuration((long) (duration * 0.45));
+                        fadeOut.start();
                     }
                 }));
 
