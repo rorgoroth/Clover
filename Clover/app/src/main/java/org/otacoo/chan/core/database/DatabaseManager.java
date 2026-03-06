@@ -81,9 +81,14 @@ public class DatabaseManager {
 
         helper = new DatabaseHelper(context);
 
-        // Immediately trigger onUpgrade if necessary.
-        SQLiteDatabase writableDatabase = helper.getWritableDatabase();
-        writableDatabase.close();
+        try {
+            // Immediately trigger onUpgrade if necessary.
+            // Wrap in try-catch to prevent construction failure from crashing DI graph
+            SQLiteDatabase writableDatabase = helper.getWritableDatabase();
+            writableDatabase.close();
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to open or upgrade database during construction", e);
+        }
 
         databaseLoadableManager = new DatabaseLoadableManager(this, helper);
         databasePinManager = new DatabasePinManager(this, helper, databaseLoadableManager);
@@ -93,7 +98,12 @@ public class DatabaseManager {
         databaseBoardManager = new DatabaseBoardManager(this, helper);
         databaseSiteManager = new DatabaseSiteManager(this, helper);
         databaseHideManager = new DatabaseHideManager(this, helper);
-        EventBus.getDefault().register(this);
+        
+        try {
+            EventBus.getDefault().register(this);
+        } catch (Exception e) {
+            Logger.e(TAG, "EventBus registration failed", e);
+        }
     }
 
     public void initializeAndTrim() {
