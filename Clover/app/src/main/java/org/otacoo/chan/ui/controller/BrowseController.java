@@ -357,7 +357,7 @@ public class BrowseController extends ThreadController implements
             setBoard(threadLoadable.board);
             loadBoard(threadLoadable);
         } else {
-            showThread(threadLoadable, false);
+            showThread(threadLoadable, true);
         }
     }
 
