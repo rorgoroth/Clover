@@ -953,7 +953,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
         if (!TextUtils.isEmpty(err) && err.length() < 500) {
             final String finalErr = err;
             AndroidUtils.runOnUiThread(() -> {
-                maybeToast(finalErr, true);
+                maybeToast(finalErr, false);
                 showOverlay(finalErr);
             });
         }
