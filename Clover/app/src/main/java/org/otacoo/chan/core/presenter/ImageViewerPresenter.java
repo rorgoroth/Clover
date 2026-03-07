@@ -370,6 +370,17 @@ public class ImageViewerPresenter implements MultiImageView.Callback, ViewPager.
         }
     }
 
+    @Override
+    public void onVideoMuteClicked(MultiImageView multiImageView, boolean muted) {
+        this.muted = muted;
+        callback.showVolumeMenuItem(true, muted);
+    }
+
+    @Override
+    public void onVideoBackClicked(MultiImageView multiImageView) {
+        onExit();
+    }
+
     private boolean imageAutoLoad(PostImage postImage) {
         // Auto load the image when it is cached
         return fileCache.exists(postImage.imageUrl.toString()) || shouldLoadForNetworkType(ChanSettings.imageAutoLoadNetwork.get());
