@@ -37,6 +37,8 @@ public class ImageViewerNavigationController extends ToolbarNavigationController
     public void onCreate() {
         super.onCreate();
 
+        navigation.handlesToolbarInset = true;
+
         view = inflateRes(R.layout.controller_navigation_image_viewer);
         container = (NavigationControllerContainerLayout) view.findViewById(R.id.container);
         NavigationControllerContainerLayout nav = (NavigationControllerContainerLayout) container;

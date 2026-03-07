@@ -415,21 +415,25 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
             return true;
         }
 
+        int targetTop = ChanSettings.toolbarBottom.get() ? 0 : toolbarHeight();
+
         switch (postViewMode) {
             case LIST:
                 if (getTopAdapterPosition() == 0) {
                     View top = layoutManager.findViewByPosition(0);
-                    return top.getTop() != toolbarHeight();
+                    return top != null && top.getTop() != targetTop;
                 }
                 break;
             case CARD:
                 if (getTopAdapterPosition() == 0) {
                     View top = layoutManager.findViewByPosition(0);
-                    if (top instanceof PostStubCell) {
-                        // PostStubCell does not have grid_card_margin
-                        return top.getTop() != toolbarHeight() + dp(1);
-                    } else {
-                        return top.getTop() != getDimen(getContext(), R.dimen.grid_card_margin) + dp(1) + toolbarHeight();
+                    if (top != null) {
+                        if (top instanceof PostStubCell) {
+                            // PostStubCell does not have grid_card_margin
+                            return top.getTop() != targetTop + dp(1);
+                        } else {
+                            return top.getTop() != getDimen(getContext(), R.dimen.grid_card_margin) + dp(1) + targetTop;
+                        }
                     }
                 }
                 break;

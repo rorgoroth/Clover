@@ -83,12 +83,18 @@ public abstract class ThreadController extends Controller implements
 
         swipeRefreshLayout.setOnRefreshListener(this);
 
-        if (navigation.handlesToolbarInset) {
-            int toolbarHeight = getToolbar().getToolbarHeight();
-            swipeRefreshLayout.setProgressViewOffset(false, toolbarHeight - dp(40), toolbarHeight + dp(64 - 40));
-        }
+        updateSwipeRefreshLayoutOffset();
 
         view = swipeRefreshLayout;
+    }
+
+    private void updateSwipeRefreshLayoutOffset() {
+        if (navigation.handlesToolbarInset) {
+            int toolbarHeight = getToolbar().getToolbarHeight();
+            boolean bottom = ChanSettings.toolbarBottom.get();
+            int topOffset = bottom ? 0 : toolbarHeight;
+            swipeRefreshLayout.setProgressViewOffset(false, topOffset + dp(16), topOffset + dp(64));
+        }
     }
 
     @Override
@@ -236,6 +242,7 @@ public abstract class ThreadController extends Controller implements
 
     @Override
     public void onShowPosts() {
+        updateSwipeRefreshLayoutOffset();
     }
 
     @Override

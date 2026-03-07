@@ -140,6 +140,7 @@ public class ImageViewerController extends Controller implements ImageViewerPres
 
         // Navigation
         navigation.subtitle = "0";
+        navigation.handlesToolbarInset = true;
 
         NavigationItem.MenuBuilder menuBuilder = navigation.buildMenu();
         if (goPostCallback != null) {
