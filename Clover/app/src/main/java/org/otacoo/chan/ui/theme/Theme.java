@@ -101,11 +101,12 @@ public class Theme {
         this.accentColor = ThemeHelper.PrimaryColor.BLUE;
         this.loadingBarColor = primaryColor;
 
+        resolveSpanColors();
+
         this.defaultPrimaryColor = this.primaryColor;
         this.defaultAccentColor = this.accentColor;
         this.defaultLoadingBarColor = this.loadingBarColor;
 
-        resolveSpanColors();
         resolveDrawables();
     }
 

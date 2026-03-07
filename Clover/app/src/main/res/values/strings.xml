@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="save">Save</string>
 
     <string name="pin_search_title">Pin Catalog Search</string>
-    <string name="pin_search_term_hint">Search term (e.g. vidya)</string>
+    <string name="pin_search_term_hint">Search term (e.g. game)</string>
 
     <string name="mark_as_my_post">Mark as my post</string>
     <string name="unmark_as_my_post">Forget post</string>
@@ -607,14 +607,14 @@ Crash reports do not collect any personally identifiable information."
     <string name="setting_save_mode_boardthread">Base folder/board/thread</string>
     <string name="setting_save_mode_legacy">Base folder/thread (legacy album)</string>
     <string name="setting_randomize_filename">Randomize Filename</string>
-    <string name="setting_randomize_filename_description">Change file name to random Unix timestamp within the past year.</string>
+    <string name="setting_randomize_filename_description">Change file name to random Unix timestamp within the past year</string>
     <string name="setting_save_original_filename">Save server filename</string>
     <string name="setting_save_original_filename_description">
 "Save the image with the filename the site assigned.
 If disabled, save the image with the filename the uploader assigned."
     </string>
     <string name="setting_video_default_muted">Start videos muted</string>
-    <string name="setting_video_default_muted_description">If a video has audio, mute it by default.</string>
+    <string name="setting_video_default_muted_description">If a video has audio, mute it by default</string>
     <string name="setting_video_open_external">Play videos with external player</string>
     <string name="setting_video_open_external_description">Play videos in an external media player app</string>
     <string name="setting_video_auto_loop">Enable automatic video-looping</string>
@@ -622,7 +622,7 @@ If disabled, save the image with the filename the uploader assigned."
     <string name="setting_share_url">Share URL to image</string>
     <string name="setting_share_url_description">Share the URL to the image instead of the image itself</string>
     <string name="settings_reveal_image_spoilers">Reveal image spoilers</string>
-    <string name="settings_reveal_image_spoilers_description">Always reveal spoiler thumbnails and images.</string>
+    <string name="settings_reveal_image_spoilers_description">Always reveal spoiler thumbnails and images</string>
 
     <!-- Media loading group -->
     <string name="settings_group_media_loading">Media loading</string>

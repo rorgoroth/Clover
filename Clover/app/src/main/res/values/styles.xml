@@ -136,7 +136,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <item name="text_color_secondary">#89000000</item>
 
         <item name="post_subject_color">#ff0F0C5D</item>
-        <item name="post_quote_color">#ffdd0000</item>
+        <item name="post_quote_color">#FEA90000</item>
         <item name="post_link_color">#ffdd0000</item>
         <item name="post_highlight_quote_color">#6d0000</item>
     </style>
@@ -157,7 +157,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         <item name="post_subject_color">#ffcc1105</item>
         <item name="post_quote_color">#ff000080</item>
-        <item name="post_link_color">#ff000080</item>
+        <item name="post_link_color">#FF050CCC</item>
         <item name="post_highlight_quote_color">#000039</item>
     </style>
 
@@ -169,7 +169,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <item name="backcolor">#ffeeeeee</item>
 
         <item name="post_name_color">#ff004A99</item>
-        <item name="post_quote_color">#ffFF6600</item>
+        <item name="post_quote_color">#FED34701</item>
         <item name="post_link_color">#ffFF6600</item>
         <item name="post_highlight_quote_color">#ac5a00</item>
         <item name="post_subject_color">#ff111111</item>

@@ -226,10 +226,9 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
 
             @Override
             public void onPageSelected(int position) {
-                // Reset accent and loading bar colors to the selected theme's defaults
                 Theme selectedTheme = themes.get(position);
-                selectedAccentColor = selectedTheme.defaultAccentColor;
-                selectedLoadingBarColor = selectedTheme.defaultLoadingBarColor;
+                selectedAccentColor = selectedTheme.accentColor;
+                selectedLoadingBarColor = selectedTheme.loadingBarColor;
                 done.setBackgroundTintList(ColorStateList.valueOf(selectedAccentColor.color));
                 reset.setBackgroundTintList(ColorStateList.valueOf(selectedAccentColor.color));
             }
@@ -282,9 +281,13 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
         int position = pager.getCurrentItem();
         Theme theme = themes.get(position);
 
-        selectedPrimaryColors.set(position, theme.defaultPrimaryColor);
-        selectedAccentColor = theme.defaultAccentColor;
-        selectedLoadingBarColor = theme.defaultLoadingBarColor;
+        // Reset theme object and colors back to style defaults
+        theme.colorOverrides.clear();
+        theme.resolveSpanColors();
+
+        selectedPrimaryColors.set(position, theme.primaryColor);
+        selectedAccentColor = theme.accentColor;
+        selectedLoadingBarColor = theme.loadingBarColor;
 
         done.setBackgroundTintList(ColorStateList.valueOf(selectedAccentColor.color));
         reset.setBackgroundTintList(ColorStateList.valueOf(selectedAccentColor.color));
@@ -398,14 +401,19 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
     private void showAccentColorPicker() {
         showColorPickerDialog("Change the FAB color", selectedAccentColor, color -> {
             selectedAccentColor = color;
+            int position = pager.getCurrentItem();
+            themes.get(position).accentColor = color;
             done.setBackgroundTintList(ColorStateList.valueOf(selectedAccentColor.color));
             reset.setBackgroundTintList(ColorStateList.valueOf(selectedAccentColor.color));
+            adapter.notifyDataSetChanged();
         });
     }
 
     private void showLoadingBarColorPicker() {
         showColorPickerDialog("Change Loading bar color", selectedLoadingBarColor, color -> {
             selectedLoadingBarColor = color;
+            int position = pager.getCurrentItem();
+            themes.get(position).loadingBarColor = color;
             adapter.notifyDataSetChanged();
         });
     }
