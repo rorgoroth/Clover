@@ -25,7 +25,7 @@ android {
 
     defaultConfig {
         applicationId "org.otacoo.chan"
-        minSdk 28
+        minSdk 23
         //noinspection ExpiredTargetSdkVersion
         targetSdk 29
         //noinspection ExpiredTargetSdkVersion
@@ -91,7 +91,7 @@ android {
         is.close()
     }
 
-    flavorDimensions "default"
+    flavorDimensions +="default"
     productFlavors {
         // The app name refers to the name as displayed on the launcher.
         "default" {
@@ -144,7 +144,6 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'])
     implementation 'androidx.legacy:legacy-support-v13:1.0.0'
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'androidx.recyclerview:recyclerview:1.1.0'
@@ -171,8 +170,4 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.11.0'
     implementation 'me.xdrop:fuzzywuzzy:1.4.0'
     implementation 'org.codejargon.feather:feather:1.0'
-
-    // Will not be included in APK, just for testing
-    testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.mockito:mockito-core:2.27.0'
 }
