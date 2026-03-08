@@ -497,7 +497,7 @@ public class ImageViewerController extends Controller implements ImageViewerPres
         OkHttpClient client = injector().instance(OkHttpClient.class);
         Request request = new Request.Builder().url(postImage.getThumbnailUrl().toString()).build();
         inTransitionCall = client.newCall(request);
-        inTransitionCall.enqueue(new Callback() {
+        inTransitionCall.enqueue(new okhttp3.Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 inTransitionCall = null;
@@ -542,20 +542,30 @@ public class ImageViewerController extends Controller implements ImageViewerPres
         }
 
         ((ImageViewerAdapter) pager.getAdapter()).pauseAll();
-        imageViewerCallback.onBeforePreviewDestroy(this, postImage);
-        previewOutAnimationEnded(postImage);
+
+        Bitmap cached = ThumbnailView.getCachedBitmap(postImage.getThumbnailUrl().toString());
+        doPreviewOutAnimation(postImage, cached);
     }
 
     private void doPreviewOutAnimation(PostImage postImage, Bitmap bitmap) {
+        setPagerVisiblity(false);
+        setPreviewVisibility(true);
+
+        previewImage.setState(1f, null, null);
+        previewImage.setAlpha(1f);
+        previewImage.setTranslationY(0);
+
         // Find translation and scale if the current displayed image was a bigimage
         MultiImageView multiImageView = ((ImageViewerAdapter) pager.getAdapter()).find(postImage);
-        CustomScaleImageView customScaleImageView = multiImageView.findScaleImageView();
-        if (customScaleImageView != null) {
-            ImageViewState state = customScaleImageView.getState();
-            if (state != null) {
-                PointF p = customScaleImageView.viewToSourceCoord(0f, 0f);
-                PointF bitmapSize = new PointF(customScaleImageView.getSWidth(), customScaleImageView.getSHeight());
-                previewImage.setState(state.getScale(), p, bitmapSize);
+        if (multiImageView != null) {
+            CustomScaleImageView customScaleImageView = multiImageView.findScaleImageView();
+            if (customScaleImageView != null) {
+                ImageViewState state = customScaleImageView.getState();
+                if (state != null) {
+                    PointF p = customScaleImageView.viewToSourceCoord(0f, 0f);
+                    PointF bitmapSize = new PointF(customScaleImageView.getSWidth(), customScaleImageView.getSHeight());
+                    previewImage.setState(state.getScale(), p, bitmapSize);
+                }
             }
         }
 
@@ -566,6 +576,9 @@ public class ImageViewerController extends Controller implements ImageViewerPres
             if (bitmap != null) {
                 previewImage.setBitmap(bitmap);
             }
+
+            previewImage.setProgress(1f);
+
             ValueAnimator backgroundAlpha = ValueAnimator.ofFloat(1f, 0f);
             backgroundAlpha.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
@@ -575,12 +588,14 @@ public class ImageViewerController extends Controller implements ImageViewerPres
             });
 
             endAnimation
-                    .play(ObjectAnimator.ofFloat(previewImage, View.Y, previewImage.getTop(), previewImage.getTop() + dp(20)))
-                    .with(ObjectAnimator.ofFloat(previewImage, View.ALPHA, 1f, 0f))
+                    .play(ObjectAnimator.ofFloat(previewImage, View.ALPHA, 1f, 0f))
+                    .with(ObjectAnimator.ofFloat(previewImage, View.TRANSLATION_Y, 0, dp(20)))
                     .with(backgroundAlpha);
 
         } else {
             previewImage.setBitmap(bitmap);
+            previewImage.setProgress(1f);
+
             ValueAnimator progress = ValueAnimator.ofFloat(1f, 0f);
             progress.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                 @Override
@@ -592,16 +607,19 @@ public class ImageViewerController extends Controller implements ImageViewerPres
 
             endAnimation.play(progress);
         }
-        endAnimation.setDuration(TRANSITION_DURATION);
+
+        endAnimation.setDuration(250);
         endAnimation.setInterpolator(new PathInterpolator(0.4f, 0f, 0.2f, 1f));
         endAnimation.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
+                endAnimation = null;
                 previewOutAnimationEnded(postImage);
             }
         });
-        endAnimation.start();
+
         imageViewerCallback.onBeforePreviewDestroy(this, postImage);
+        endAnimation.start();
     }
 
     private void previewOutAnimationEnded(PostImage postImage) {
