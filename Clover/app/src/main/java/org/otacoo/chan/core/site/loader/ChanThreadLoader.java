@@ -200,7 +200,6 @@ public class ChanThreadLoader implements JsonReaderRequest.RequestListener<ChanL
         clearPendingRunnable();
 
         int watchTimeout = WATCH_TIMEOUTS[currentTimeout];
-        Logger.d(TAG, "Scheduled reload in " + watchTimeout + "s");
 
         pendingFuture = executor.schedule(new Runnable() {
             @Override
@@ -327,8 +326,6 @@ public class ChanThreadLoader implements JsonReaderRequest.RequestListener<ChanL
     @Override
     public void onError(String error) {
         request = null;
-
-        Logger.i(TAG, "Loading error: " + error);
 
         clearTimer();
 
