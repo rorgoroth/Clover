@@ -109,10 +109,11 @@ public class BrowseController extends ThreadController implements
         // Toolbar menu
         navigation.hasBack = false;
 
-        NavigationItem.MenuOverflowBuilder overflowBuilder = navigation.buildMenu()
+        NavigationItem.MenuBuilder menuBuilder = navigation.buildMenu()
                 .withItem(R.drawable.ic_search_white_24dp, this::searchClicked)
-                .withItem(R.drawable.ic_refresh_white_24dp, this::reloadClicked)
-                .withOverflow();
+                .withItem(R.drawable.ic_refresh_white_24dp, this::reloadClicked);
+
+        NavigationItem.MenuOverflowBuilder overflowBuilder = menuBuilder.withOverflow();
 
         if (!ChanSettings.enableReplyFab.get()) {
             overflowBuilder.withSubItem(R.string.action_reply, this::replyClicked);
@@ -343,7 +344,19 @@ public class BrowseController extends ThreadController implements
     @Override
     public void showArchiveOption(boolean show) {
         ToolbarMenuSubItem archive = navigation.findSubItem(ARCHIVE_ID);
-        archive.enabled = show;
+        if (archive != null) {
+            archive.enabled = show;
+        }
+    }
+
+    @Override
+    public void openWebPage(String url, String title) {
+        WebViewController webViewController = new WebViewController(context, url, title);
+        if (doubleNavigationController != null) {
+            doubleNavigationController.pushController(webViewController);
+        } else {
+            navigationController.pushController(webViewController);
+        }
     }
 
     @Override

@@ -108,6 +108,11 @@ public class BrowsePresenter implements SimpleObservable.SimpleObserver<Void> {
     }
 
     private void loadBoard(Board board) {
+        if ("ban".equals(board.code)) {
+            callback.openWebPage("https://www.4chan.org/banned", board.name);
+            return;
+        }
+
         currentBoard = board;
         callback.loadBoard(getLoadableForBoard(board));
         callback.showArchiveOption(board.site.boardFeature(Site.BoardFeature.ARCHIVE, board));
@@ -119,5 +124,7 @@ public class BrowsePresenter implements SimpleObservable.SimpleObserver<Void> {
         void loadSiteSetup(Site site);
 
         void showArchiveOption(boolean show);
+
+        void openWebPage(String url, String title);
     }
 }

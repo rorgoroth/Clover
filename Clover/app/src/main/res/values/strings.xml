@@ -740,4 +740,7 @@ Don't have a 4chan Pass?<br>
 
     <string name="setting_pinned_searches">Enable pinned searches</string>
     <string name="setting_pinned_searches_description">Adds a button to the bookmarks drawer to pin catalog searches</string>
+
+    <string name="board_ban_status">4chan Ban Status</string>
+    <string name="board_ban_status_description">Check your 4chan ban status</string>
 </resources>
