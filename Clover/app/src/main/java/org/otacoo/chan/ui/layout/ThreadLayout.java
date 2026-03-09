@@ -407,14 +407,10 @@ public class ThreadLayout extends CoordinatorLayout implements
     @Override
     public void showError(ChanLoaderException error) {
         String errorMessage = getString(error.getErrorMessage());
-        boolean verificationRequired = false;
+        boolean verificationRequired = error.isVerificationRequired();
 
-        if (error.getThrowable() != null && error.getThrowable().getMessage() != null) {
-            String msg = error.getThrowable().getMessage();
-            if (msg.contains("Verification") || msg.contains("Login") || msg.contains("HTML instead of JSON") || msg.contains("Terms of Service")) {
-                errorMessage = msg;
-                verificationRequired = true;
-            }
+        if (verificationRequired) {
+            errorMessage = error.getMessage();
         }
 
         if (visible == Visible.THREAD) {
