@@ -78,7 +78,6 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
     protected SwipeRefreshLayout drawer;
     protected RecyclerView recyclerView;
     protected DrawerAdapter drawerAdapter;
-    private Runnable pendingOnDrawerClosed;
 
     @Inject
     WatchManager watchManager;
@@ -121,17 +120,6 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
         drawerAdapter.setPinnedSearches(ChanSettings.getPinnedSearches());
         drawerAdapter.onPinsChanged(watchManager.getAllPins());
 
-        drawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
-            @Override
-            public void onDrawerClosed(View drawerView) {
-                if (pendingOnDrawerClosed != null) {
-                    Runnable r = pendingOnDrawerClosed;
-                    pendingOnDrawerClosed = null;
-                    r.run();
-                }
-            }
-        });
-
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(drawerAdapter.getItemTouchHelperCallback());
         itemTouchHelper.attachToRecyclerView(recyclerView);
 
@@ -169,7 +157,7 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
 
     @Override
     public void onPinClicked(Pin pin) {
-        pendingOnDrawerClosed = () -> openPin(pin);
+        openPin(pin);
         drawerLayout.closeDrawer(drawer);
     }
 
@@ -206,7 +194,7 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
         final Loadable loadable = Loadable.forCatalog(finalBoard);
         loadable.searchQuery = Uri.decode(search.searchTerm);
 
-        pendingOnDrawerClosed = () -> openPinnedSearch(finalBoard, loadable);
+        openPinnedSearch(finalBoard, loadable);
         drawerLayout.closeDrawer(drawer);
     }
 
