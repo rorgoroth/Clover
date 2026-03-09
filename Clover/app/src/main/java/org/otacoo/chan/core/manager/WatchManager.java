@@ -308,18 +308,31 @@ public class WatchManager {
         EventBus.getDefault().post(new PinChangedMessage(pin));
     }
 
+    public void onPostSeen(Pin pin, int postNo) {
+        PinWatcher pinWatcher = getPinWatcher(pin);
+        if (pinWatcher != null) {
+            pinWatcher.updateData();
+            pinWatcher.onPostSeen(postNo);
+        }
+
+        updatePin(pin);
+        // Immediately notify of the change
+        EventBus.getDefault().post(new PinChangedMessage(pin));
+    }
+
     public void onBottomPostViewed(Pin pin) {
+        PinWatcher pinWatcher = getPinWatcher(pin);
+        if (pinWatcher != null) {
+            pinWatcher.updateData();
+            pinWatcher.onViewed();
+        }
+
         if (pin.watchNewCount >= 0) {
             pin.watchLastCount = pin.watchNewCount;
         }
 
         if (pin.quoteNewCount >= 0) {
             pin.quoteLastCount = pin.quoteNewCount;
-        }
-
-        PinWatcher pinWatcher = getPinWatcher(pin);
-        if (pinWatcher != null) {
-            pinWatcher.onViewed();
         }
 
         updatePin(pin);
@@ -722,6 +735,9 @@ public class WatchManager {
         private boolean wereNewQuotes = false;
         private boolean wereNewPosts = false;
 
+        private int notifiedPostCount = 0;
+        private int notifiedQuoteCount = 0;
+
         private boolean requireNotificationUpdate = true;
 
         private Bitmap thumbnailBitmap = null;
@@ -749,6 +765,8 @@ public class WatchManager {
 
         public void hadNotificationUpdate() {
             requireNotificationUpdate = false;
+            notifiedPostCount = pin.getNewPostCount();
+            notifiedQuoteCount = pin.getNewQuoteCount();
         }
 
         @Nullable
@@ -802,6 +820,34 @@ public class WatchManager {
             wereNewPosts = false;
             wereNewQuotes = false;
             requireNotificationUpdate = true;
+            notifiedPostCount = 0;
+            notifiedQuoteCount = 0;
+        }
+
+        private void onPostSeen(int postNo) {
+            // Find post in posts list
+            for (int i = 0; i < posts.size(); i++) {
+                if (posts.get(i).no == postNo) {
+                    pin.watchLastCount = Math.max(pin.watchLastCount, i + 1);
+                    break;
+                }
+            }
+
+            // Find post in quotes list
+            for (int i = 0; i < quotes.size(); i++) {
+                if (quotes.get(i).no == postNo) {
+                    pin.quoteLastCount = Math.max(pin.quoteLastCount, i + 1);
+                    break;
+                }
+            }
+
+            requireNotificationUpdate = true;
+        }
+
+        private void updateData() {
+            if (chanLoader != null && chanLoader.getThread() != null) {
+                onChanLoaderData(chanLoader.getThread());
+            }
         }
 
         private boolean update(boolean fromBackground) {
@@ -895,13 +941,13 @@ public class WatchManager {
 
             if (!isFirstLoad) {
                 // There were new posts after processing
-                if (pin.watchNewCount > lastWatchNewCount) {
+                if (pin.getNewPostCount() > notifiedPostCount) {
                     wereNewPosts = true;
                     requireNotificationUpdate = true;
                 }
 
                 // There were new quotes after processing
-                if (pin.quoteNewCount > lastQuoteNewCount) {
+                if (pin.getNewQuoteCount() > notifiedQuoteCount) {
                     wereNewQuotes = true;
                     requireNotificationUpdate = true;
                 }

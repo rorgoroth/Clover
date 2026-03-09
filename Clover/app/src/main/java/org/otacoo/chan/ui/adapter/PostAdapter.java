@@ -176,7 +176,7 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
-    public void setThread(ChanThread thread, PostsFilter filter) {
+    public void setThread(ChanThread thread, PostsFilter filter, int lastViewed) {
         bound = true;
         showError(null);
 
@@ -187,11 +187,11 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         displayList.addAll(filter.apply(sourceList));
 
         lastSeenIndicatorPosition = -1;
-        if (thread.loadable.lastViewed >= 0) {
+        if (lastViewed >= 0) {
             // Do not process the last post, the indicator does not have to appear at the bottom
             for (int i = 0, displayListSize = displayList.size() - 1; i < displayListSize; i++) {
                 Post post = displayList.get(i);
-                if (post.no == thread.loadable.lastViewed) {
+                if (post.no == lastViewed) {
                     lastSeenIndicatorPosition = i + 1;
                     break;
                 }

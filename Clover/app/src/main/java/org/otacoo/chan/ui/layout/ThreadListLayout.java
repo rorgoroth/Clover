@@ -73,6 +73,7 @@ import java.util.List;
  */
 public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLayoutCallback {
     public static final int MAX_SMOOTH_SCROLL_DISTANCE = 20;
+    private static final long SCROLL_SAVE_DELAY = 250;
 
     private ReplyLayout reply;
     private TextView searchStatus;
@@ -89,8 +90,29 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     private int background;
     private boolean searchOpen;
     private int lastPostCount;
+    private int threadLastViewed = -1;
 
     private Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    private final Runnable saveScrollPositionRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (showingThread != null) {
+                int[] indexTop = getIndexAndTop();
+                showingThread.loadable.setListViewIndex(indexTop[0]);
+                showingThread.loadable.setListViewTop(indexTop[1]);
+
+                int lastVisible = getBottomAdapterPosition();
+                if (lastVisible >= 0) {
+                    int postPos = postAdapter.getPostPosition(lastVisible);
+                    if (postPos >= 0 && postPos < postAdapter.getDisplayList().size()) {
+                        Post post = postAdapter.getDisplayList().get(postPos);
+                        callback.onPostSeen(post.no);
+                    }
+                }
+            }
+        }
+    };
 
     private RecyclerView.OnScrollListener scrollListener = new RecyclerView.OnScrollListener() {
         @Override
@@ -147,10 +169,8 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     private void onRecyclerViewScrolled(int dy) {
         // onScrolled can be called after cleanup()
         if (showingThread != null) {
-            int[] indexTop = getIndexAndTop();
-
-            showingThread.loadable.setListViewIndex(indexTop[0]);
-            showingThread.loadable.setListViewTop(indexTop[1]);
+            mainHandler.removeCallbacks(saveScrollPositionRunnable);
+            mainHandler.postDelayed(saveScrollPositionRunnable, SCROLL_SAVE_DELAY);
 
             int last = getCompleteBottomAdapterPosition();
             if (last == postAdapter.getItemCount() - 1 && last > lastPostCount) {
@@ -242,8 +262,11 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     }
 
     public void showPosts(ChanThread thread, PostsFilter filter, boolean initial) {
+        boolean threadChanged = showingThread != null && showingThread != thread;
         showingThread = thread;
-        if (initial) {
+        if (initial || threadChanged) {
+            lastPostCount = -1;
+            threadLastViewed = thread.loadable.lastViewed;
             reply.bindLoadable(showingThread.loadable);
 
             recyclerView.setLayoutManager(null);
@@ -265,9 +288,17 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
             party();
         }
 
+        // If we reached the end of the thread, update threadLastViewed to clear the indicator
+        if (thread.loadable.isThreadMode() && !thread.posts.isEmpty()) {
+            int lastPostNo = thread.posts.get(thread.posts.size() - 1).no;
+            if (thread.loadable.lastViewed == lastPostNo) {
+                threadLastViewed = lastPostNo;
+            }
+        }
+
         setFastScroll(true);
 
-        postAdapter.setThread(thread, filter);
+        postAdapter.setThread(thread, filter, threadLastViewed);
     }
 
     public boolean onBack() {
@@ -697,6 +728,16 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
         return -1;
     }
 
+    private int getBottomAdapterPosition() {
+        switch (postViewMode) {
+            case LIST:
+                return ((LinearLayoutManager) layoutManager).findLastVisibleItemPosition();
+            case CARD:
+                return ((GridLayoutManager) layoutManager).findLastVisibleItemPosition();
+        }
+        return -1;
+    }
+
     private int getCompleteBottomAdapterPosition() {
         switch (postViewMode) {
             case LIST:
@@ -755,6 +796,8 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
         void requestNewPostLoad();
 
         void onListScrolledToBottom();
+
+        void onPostSeen(int postNo);
     }
 
     public interface ThreadListLayoutCallback {
