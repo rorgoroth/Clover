@@ -599,7 +599,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         };
 
         DefaultRenderersFactory renderersFactory = new DefaultRenderersFactory(getContext())
-                .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_PREFER)
+                .setExtensionRendererMode(DefaultRenderersFactory.EXTENSION_RENDERER_MODE_ON)
                 .setMediaCodecSelector(codecSelector)
                 .setEnableDecoderFallback(true);
 
