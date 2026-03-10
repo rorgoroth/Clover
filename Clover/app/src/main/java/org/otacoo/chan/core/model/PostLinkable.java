@@ -36,7 +36,7 @@ import org.otacoo.chan.ui.theme.ThemeHelper;
 @SuppressWarnings("JavadocReference")
 public class PostLinkable extends ClickableSpan {
     public enum Type {
-        QUOTE, LINK, SPOILER, THREAD, DEAD, BOARD, SJIS
+        QUOTE, LINK, SPOILER, THREAD, DEAD, BOARD, CATALOG, SJIS
     }
 
     public final Theme theme;
@@ -69,7 +69,7 @@ public class PostLinkable extends ClickableSpan {
     public void updateDrawState(@NonNull TextPaint ds) {
         // Force the current theme so posts parsed under a different theme still render correctly after theme change
         Theme currentTheme = ThemeHelper.theme();
-        if (type == Type.QUOTE || type == Type.LINK || type == Type.THREAD || type == Type.DEAD || type == Type.BOARD) {
+        if (type == Type.QUOTE || type == Type.LINK || type == Type.THREAD || type == Type.DEAD || type == Type.BOARD || type == Type.CATALOG) {
             if (type == Type.QUOTE) {
                 if (value instanceof Integer && ((int) value) == markedNo) {
                     ds.setColor(currentTheme.highlightQuoteColor);

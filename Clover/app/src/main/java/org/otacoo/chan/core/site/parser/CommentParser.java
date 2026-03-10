@@ -32,6 +32,7 @@ import androidx.annotation.AnyThread;
 import org.otacoo.chan.core.model.Post;
 import org.otacoo.chan.core.model.PostLinkable;
 import org.otacoo.chan.core.site.sites.chan4.Chan4;
+import org.otacoo.chan.core.site.sites.chan8.Chan8;
 import org.otacoo.chan.ui.span.AbsoluteSizeSpanHashed;
 import org.otacoo.chan.ui.span.ForegroundColorSpanHashed;
 import org.otacoo.chan.ui.span.SjisSpan;
@@ -93,10 +94,16 @@ public class CommentParser {
         rule(tagRule("em").italic());
 
         rule(tagRule("pre").cssClass("prettyprint").monospace().size(sp(12f)));
+        rule(tagRule("code").monospace().size(sp(12f)));
+
     }
 
     public void rule(StyleRule rule) {
-        rules.computeIfAbsent(rule.tag(), k -> new ArrayList<>(3)).add(rule);
+        List<StyleRule> list = rules.get(rule.tag());
+        if (list == null) {list = new ArrayList<>(3);
+            rules.put(rule.tag(), list);
+        }
+        list.add(rule);
     }
 
     public void setQuotePattern(Pattern quotePattern) {
@@ -176,28 +183,41 @@ public class CommentParser {
                                       Post.Builder post,
                                       CharSequence text,
                                       Element anchor) {
-        if (!(post.board.site instanceof Chan4)) {
+        if (!(post.board.site instanceof Chan4 || post.board.site instanceof Chan8)) {
             return text;
         }
         Link handlerLink = null;
         try {
             String[] spanContent = text.toString().split("/");
-            if (spanContent[0].startsWith(">>>") && spanContent.length == 3) {
-                // >>>/board/post
+            if (spanContent[0].startsWith(">>>") && spanContent.length >= 2) {
+                // >>>/board/ or >>>/board/post or >>>/example/
                 String board = spanContent[1];
-                int postNo = Integer.parseInt(spanContent[2]);
                 handlerLink = new Link();
-                handlerLink.type = PostLinkable.Type.DEAD;
                 handlerLink.key = text;
-                handlerLink.value = new PostLinkable.ThreadLink(board, -1, postNo);
+                
+                String defaultScheme = post.board.site instanceof Chan8 ? "https" : "http";
+                String defaultHost = post.board.site instanceof Chan8 ? "8chan.moe" : "boards.4chan.org";
+
+                if (spanContent.length >= 3) {
+                    try {
+                        int postNo = Integer.parseInt(spanContent[2]);
+                        handlerLink.type = PostLinkable.Type.DEAD;
+                        handlerLink.value = new PostLinkable.ThreadLink(board, -1, postNo);
+                    } catch (NumberFormatException e) {
+                        // Not a number, treat as a catalog search term for 4chan compatibility
+                        handlerLink.type = PostLinkable.Type.BOARD;
+                        handlerLink.value = new PostLinkable.BoardLink(board, spanContent[2], defaultScheme, defaultHost);
+                    }
+                } else {
+                    handlerLink.type = PostLinkable.Type.BOARD;
+                    handlerLink.value = new PostLinkable.BoardLink(board, null, defaultScheme, defaultHost);
+                }
             } else if (spanContent[0].startsWith(">>") && spanContent.length == 1) {
                 // >>post
                 int postNo = Integer.parseInt(spanContent[0].substring(2));
                 handlerLink = new Link();
                 handlerLink.type = PostLinkable.Type.DEAD;
                 handlerLink.key = text;
-                //if (callback.isSaved(postNo))
-                //    handlerLink.key = TextUtils.concat(text, SAVED_REPLY_SUFFIX);
                 handlerLink.value = new PostLinkable.ThreadLink(post.board.code, -1, postNo);
             }
         } catch (Exception ignored) {

@@ -20,6 +20,7 @@ package org.otacoo.chan.core.site.parser;
 import android.graphics.Typeface;
 import android.text.SpannableString;
 import android.text.TextUtils;
+import android.text.style.RelativeSizeSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
 import android.text.style.TypefaceSpan;
@@ -38,7 +39,9 @@ import java.util.List;
 public class StyleRule {
     public enum Color {
         INLINE_QUOTE,
-        QUOTE
+        QUOTE,
+        PINK,
+        RED
     }
 
     private final List<String> blockElements = Arrays.asList("p", "div");
@@ -58,6 +61,7 @@ public class StyleRule {
     private boolean italic = false;
     private boolean monospace = false;
     private int size = 0;
+    private float relativeSize = 0f;
 
     private PostLinkable.Type link = null;
 
@@ -135,6 +139,12 @@ public class StyleRule {
 
     public StyleRule size(int size) {
         this.size = size;
+
+        return this;
+    }
+
+    public StyleRule relativeSize(float relativeSize) {
+        this.relativeSize = relativeSize;
 
         return this;
     }
@@ -225,6 +235,10 @@ public class StyleRule {
             spansToApply.add(new AbsoluteSizeSpanHashed(size));
         }
 
+        if (relativeSize != 0f) {
+            spansToApply.add(new RelativeSizeSpan(relativeSize));
+        }
+
         if (link != null) {
             PostLinkable pl = new PostLinkable(theme, result, result, link);
             post.addLinkable(pl);
@@ -255,6 +269,10 @@ public class StyleRule {
                 return theme.inlineQuoteColor;
             case QUOTE:
                 return theme.quoteColor;
+            case PINK:
+                return 0xffff28fb;
+            case RED:
+                return 0xffAF0A0F;
         }
         return 0;
     }

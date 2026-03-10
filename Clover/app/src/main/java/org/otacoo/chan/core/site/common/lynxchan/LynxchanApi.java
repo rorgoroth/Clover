@@ -295,6 +295,7 @@ public class LynxchanApi extends CommonSite.CommonApi {
                     // Lynxchan uses bare \n between HTML elements; convert to <br> so
                     // the CommentParser renders line-breaks correctly.
                     String md = reader.nextString().replace("\n", "<br>");
+                    md = md.replaceAll("\\[code\\](.*?)\\[/code\\]", "<pre><code>$1</code></pre>");
                     builder.comment(md);
                 } else {
                     reader.skipValue();
