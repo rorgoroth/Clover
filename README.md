@@ -35,6 +35,7 @@ Clover is a fast Android app for browsing imageboards, such as 4chan and 8chan. 
 - 4chan
 - Sushichan
 - Lainchan
+- 8chan
 
 ## Issues and features
 Issues can be reported here at the [Issues page](https://github.com/otacoo/Clover/issues).\

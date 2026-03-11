@@ -20,7 +20,7 @@
 - Fix an issue with the Dark Mode on older devices aggressively trying to apply dark mode to the captcha, causing repeat reloads
 - *4chan captcha:* fix an issue where a user could get stuck in a loop of "you mistyped the captcha" errors
 - *4chan captcha:* toasts will no longer show up for errors if the option is disabled
-- Snackbar (notifications at the bottom) button text will no longer follow theme color so it don't blend in and become invisible
+- Snackbar (notifications at the bottom) button text will no longer follow theme color so it doesn't blend in and become invisible
 - *Dev options:* Checking database integrity will now clear duplicate posts from the DB
 - Misc small changes like wording and error messages
 
