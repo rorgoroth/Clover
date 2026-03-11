@@ -85,6 +85,12 @@ public class Post {
 
     public final CharSequence nameTripcodeIdCapcodeSpan;
 
+    /** Pre-built per-image filename spans (built on background thread, avoids per-bind allocation). */
+    public final CharSequence[] fileNameSpans;
+
+    /** Pre-built per-image file-info spans (ext/size/dims, built on background thread). */
+    public final CharSequence[] fileInfoSpans;
+
     /**
      * This post has been deleted (the server isn't sending it anymore).
      * <p><b>This boolean is modified in worker threads, use {@code .get()} to access it.</b>
@@ -152,6 +158,8 @@ public class Post {
 
         subjectSpan = builder.subjectSpan;
         nameTripcodeIdCapcodeSpan = builder.nameTripcodeIdCapcodeSpan;
+        fileNameSpans = builder.fileNameSpans;
+        fileInfoSpans = builder.fileInfoSpans;
 
         linkables = Collections.unmodifiableList(builder.linkables);
         repliesTo = Collections.unmodifiableSet(builder.repliesToIds);
@@ -283,6 +291,8 @@ public class Post {
 
         public CharSequence subjectSpan;
         public CharSequence nameTripcodeIdCapcodeSpan;
+        public CharSequence[] fileNameSpans;
+        public CharSequence[] fileInfoSpans;
 
         private List<PostLinkable> linkables = new ArrayList<>();
         private Set<Integer> repliesToIds = new HashSet<>();

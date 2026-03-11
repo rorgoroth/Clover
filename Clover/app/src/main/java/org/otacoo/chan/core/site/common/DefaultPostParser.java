@@ -19,14 +19,18 @@ package org.otacoo.chan.core.site.common;
 
 
 import static org.otacoo.chan.utils.AndroidUtils.sp;
+import static org.otacoo.chan.utils.AndroidUtils.getString;
 
 import android.text.SpannableString;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
+import android.text.style.UnderlineSpan;
 
 import androidx.annotation.AnyThread;
 
+import org.otacoo.chan.R;
 import org.otacoo.chan.core.model.Post;
+import org.otacoo.chan.core.model.PostImage;
 import org.otacoo.chan.core.settings.ChanSettings;
 import org.otacoo.chan.core.site.parser.CommentParser;
 import org.otacoo.chan.core.site.parser.CommentParserHelper;
@@ -35,6 +39,7 @@ import org.otacoo.chan.ui.span.AbsoluteSizeSpanHashed;
 import org.otacoo.chan.ui.span.ForegroundColorSpanHashed;
 import org.otacoo.chan.ui.theme.Theme;
 import org.otacoo.chan.ui.theme.ThemeHelper;
+import org.otacoo.chan.utils.AndroidUtils;
 import org.otacoo.chan.utils.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -181,6 +186,35 @@ public class DefaultPostParser implements PostParser {
         }
 
         builder.spans(subjectSpan, nameTripcodeIdCapcodeSpan);
+
+        // Pre-build per-image file info spans to avoid allocating them on the main thread per bind.
+        if (builder.images != null && !builder.images.isEmpty()) {
+            int count = builder.images.size();
+            CharSequence[] fileNames = new CharSequence[count];
+            CharSequence[] fileInfos = new CharSequence[count];
+            for (int i = 0; i < count; i++) {
+                PostImage image = builder.images.get(i);
+
+                String filename = image.spoiler
+                        ? getString(R.string.image_spoiler_filename)
+                        : image.filename + "." + image.extension;
+                SpannableString fn = new SpannableString("\n" + filename);
+                fn.setSpan(new ForegroundColorSpanHashed(theme.detailsColor), 0, fn.length(), 0);
+                fn.setSpan(new AbsoluteSizeSpanHashed(detailsSizePx), 0, fn.length(), 0);
+                fn.setSpan(new UnderlineSpan(), 0, fn.length(), 0);
+                fileNames[i] = fn;
+
+                String info = "\n" + image.extension.toUpperCase() + " "
+                        + AndroidUtils.getReadableFileSize(image.size) + " "
+                        + image.imageWidth + "x" + image.imageHeight;
+                SpannableString fi = new SpannableString(info);
+                fi.setSpan(new ForegroundColorSpanHashed(theme.detailsColor), 0, fi.length(), 0);
+                fi.setSpan(new AbsoluteSizeSpanHashed(detailsSizePx), 0, fi.length(), 0);
+                fileInfos[i] = fi;
+            }
+            builder.fileNameSpans = fileNames;
+            builder.fileInfoSpans = fileInfos;
+        }
     }
 
     private CharSequence parseComment(Theme theme, Post.Builder post, CharSequence commentRaw, Callback callback) {

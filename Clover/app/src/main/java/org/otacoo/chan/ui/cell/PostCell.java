@@ -42,7 +42,6 @@ import android.text.format.DateUtils;
 import android.text.method.LinkMovementMethod;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.ClickableSpan;
-import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.view.ActionMode;
 import android.view.Gravity;
@@ -128,6 +127,53 @@ public class PostCell extends LinearLayout implements PostCellInterface {
     };
     private PostViewMovementMethod commentMovementMethod = new PostViewMovementMethod();
     private PostViewFastMovementMethod titleMovementMethod = new PostViewFastMovementMethod();
+
+    private boolean viewHolderSetupDone = false;
+    private boolean setupThreadMode = false;
+    private boolean setupSelectable = false;
+    private final ActionMode.Callback selectionCallback = new ActionMode.Callback() {
+        private MenuItem quoteMenuItem;
+        private MenuItem webSearchItem;
+
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            quoteMenuItem = menu.add(Menu.NONE, R.id.post_selection_action_quote, 0, R.string.post_quote);
+            webSearchItem = menu.add(Menu.NONE, R.id.post_selection_action_search, 1, R.string.post_web_search);
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            return true;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            if (item == null) return false;
+            // ensure start and end are in the right order
+            int start = Math.min(comment.getSelectionEnd(), comment.getSelectionStart());
+            int end = Math.max(comment.getSelectionEnd(), comment.getSelectionStart());
+            if (start < 0 || end < 0 || start > comment.getText().length() || end > comment.getText().length()) {
+                return false;
+            }
+            CharSequence selection = comment.getText().subSequence(start, end);
+            if (item.getItemId() == quoteMenuItem.getItemId()) {
+                callback.onPostSelectionQuoted(post, selection);
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == webSearchItem.getItemId()) {
+                Intent searchIntent = new Intent(Intent.ACTION_WEB_SEARCH);
+                searchIntent.putExtra(SearchManager.QUERY, selection.toString());
+                openIntent(searchIntent);
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+        }
+    };
 
     public PostCell(Context context) {
         super(context);
@@ -388,26 +434,14 @@ public class PostCell extends LinearLayout implements PostCellInterface {
         titleParts.add(date);
 
         if (!post.images.isEmpty()) {
+            boolean postFileName = ChanSettings.postFilename.get();
+            boolean postFileInfo = ChanSettings.postFileInfo.get();
             for (int i = 0; i < post.images.size(); i++) {
-                PostImage image = post.images.get(i);
-
-                boolean postFileName = ChanSettings.postFilename.get();
-                if (postFileName) {
-                    String filename = image.spoiler ? getString(R.string.image_spoiler_filename) : image.filename + "." + image.extension;
-                    SpannableString fileInfo = new SpannableString("\n" + filename);
-                    fileInfo.setSpan(new ForegroundColorSpanHashed(theme.detailsColor), 0, fileInfo.length(), 0);
-                    fileInfo.setSpan(new AbsoluteSizeSpanHashed(detailsSizePx), 0, fileInfo.length(), 0);
-                    fileInfo.setSpan(new UnderlineSpan(), 0, fileInfo.length(), 0);
-                    titleParts.add(fileInfo);
+                if (postFileName && post.fileNameSpans != null) {
+                    titleParts.add(post.fileNameSpans[i]);
                 }
-
-                if (ChanSettings.postFileInfo.get()) {
-                    SpannableString fileInfo = new SpannableString((postFileName ? " " : "\n") + image.extension.toUpperCase() + " " +
-                            AndroidUtils.getReadableFileSize(image.size) + " " +
-                            image.imageWidth + "x" + image.imageHeight);
-                    fileInfo.setSpan(new ForegroundColorSpanHashed(theme.detailsColor), 0, fileInfo.length(), 0);
-                    fileInfo.setSpan(new AbsoluteSizeSpanHashed(detailsSizePx), 0, fileInfo.length(), 0);
-                    titleParts.add(fileInfo);
+                if (postFileInfo && post.fileInfoSpans != null) {
+                    titleParts.add(post.fileInfoSpans[i]);
                 }
             }
         }
@@ -477,95 +511,53 @@ public class PostCell extends LinearLayout implements PostCellInterface {
         }
 
         if (threadMode) {
-            if (selectable) {
+            boolean needsSetup = !viewHolderSetupDone
+                    || threadMode != setupThreadMode
+                    || selectable != setupSelectable;
+            if (needsSetup) {
+                viewHolderSetupDone = true;
+                setupThreadMode = threadMode;
+                setupSelectable = selectable;
                 // Setting the text to selectable creates an editor, sets up a bunch of click
                 // handlers and sets a movementmethod.
                 // Required for the isTextSelectable check.
-                // We override the test and movementmethod settings.
-                if (!comment.isTextSelectable()) {
+                // We override the text and movementmethod settings.
+                if (selectable && !comment.isTextSelectable()) {
                     comment.setTextIsSelectable(true);
                 }
+                if (selectable) {
+                    comment.setCustomSelectionActionModeCallback(selectionCallback);
+                }
+                // Sets focusable to auto, clickable and longclickable to true.
+                comment.setMovementMethod(commentMovementMethod);
+                // And this sets clickable to appropriate values again.
+                comment.setOnClickListener(selfClicked);
+            }
 
+            if (selectable) {
                 comment.setText(commentText, TextView.BufferType.SPANNABLE);
-
-                comment.setCustomSelectionActionModeCallback(new ActionMode.Callback() {
-                    private MenuItem quoteMenuItem;
-                    private MenuItem webSearchItem;
-
-                    @Override
-                    public boolean onCreateActionMode(ActionMode mode, Menu menu) {
-                        quoteMenuItem = menu.add(Menu.NONE, R.id.post_selection_action_quote, 0, R.string.post_quote);
-                        webSearchItem = menu.add(Menu.NONE, R.id.post_selection_action_search, 1, R.string.post_web_search);
-                        if (Build.VERSION.SDK_INT < 23) {
-                            // SDK 23 (Android 6.0) introduced the floating toolbar, old versions
-                            // use the old one, and the buttons DON'T work if they're hidden
-                            // under the three dots, because we lose the selection
-                            quoteMenuItem.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-                            webSearchItem.setShowAsActionFlags(MenuItem.SHOW_AS_ACTION_ALWAYS);
-                        }
-
-                        return true;
-                    }
-
-                    @Override
-                    public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
-                        return true;
-                    }
-
-                    @Override
-                    public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-                        if (item == null) return false;
-                        // ensure that the start and end are in the right order, in case the selection start/end are flipped
-                        int start = Math.min(comment.getSelectionEnd(), comment.getSelectionStart());
-                        int end = Math.max(comment.getSelectionEnd(), comment.getSelectionStart());
-                        if (start < 0 || end < 0 || start > comment.getText().length() || end > comment.getText().length()) {
-                            return false;
-                        }
-                        CharSequence selection = comment.getText().subSequence(start, end);
-                        if (item.getItemId() == quoteMenuItem.getItemId()) {
-                            callback.onPostSelectionQuoted(post, selection);
-                            mode.finish();
-                            return true;
-                        } else if (item.getItemId() == webSearchItem.getItemId()) {
-                            Intent searchIntent = new Intent(Intent.ACTION_WEB_SEARCH);
-                            searchIntent.putExtra(SearchManager.QUERY, selection.toString());
-                            openIntent(searchIntent);
-                            return true;
-                        }
-
-                        return false;
-                    }
-
-                    @Override
-                    public void onDestroyActionMode(ActionMode mode) {
-                    }
-                });
             } else {
                 comment.setText(commentText);
             }
-
-            // Sets focusable to auto, clickable and longclickable to true.
-            comment.setMovementMethod(commentMovementMethod);
-
-            // And this sets clickable to appropriate values again.
-            comment.setOnClickListener(selfClicked);
 
             if (noClickable) {
                 title.setMovementMethod(titleMovementMethod);
             }
         } else {
-//            comment.setTextIsSelectable(false);
+            boolean needsSetup = !viewHolderSetupDone
+                    || threadMode != setupThreadMode;
+            if (needsSetup) {
+                viewHolderSetupDone = true;
+                setupThreadMode = threadMode;
+                setupSelectable = selectable;
+                comment.setOnClickListener(null);
+                comment.setClickable(false);
+                // Sets focusable to auto, clickable and longclickable to false.
+                comment.setMovementMethod(null);
+                title.setMovementMethod(null);
+            }
 
             comment.setText(commentText);
-
-            comment.setOnClickListener(null);
-
-            comment.setClickable(false);
-
-            // Sets focusable to auto, clickable and longclickable to false.
-            comment.setMovementMethod(null);
-
-            title.setMovementMethod(null);
         }
 
         int repliesFromSize;
@@ -596,6 +588,20 @@ public class PostCell extends LinearLayout implements PostCellInterface {
     }
 
     private void buildThumbnails() {
+        if (!post.images.isEmpty() && !ChanSettings.textOnly.get()
+                && post.images.size() == thumbnailViews.size()) {
+            // Reuse existing views: only update the image and click listener.
+            final int size = ChanSettings.thumbnailScale.get() * getResources()
+                    .getDimensionPixelSize(R.dimen.cell_post_thumbnail_size) / 100;
+            for (int i = 0; i < thumbnailViews.size(); i++) {
+                PostImageThumbnailView v = thumbnailViews.get(i);
+                PostImage image = post.images.get(i);
+                v.setPostImage(image, size, size);
+                v.setOnClickListener(v2 -> callback.onThumbnailClicked(post, image, v));
+            }
+            return;
+        }
+
         for (PostImageThumbnailView thumbnailView : thumbnailViews) {
             relativeLayoutHelper.removeView(thumbnailView);
         }
