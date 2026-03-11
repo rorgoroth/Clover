@@ -1,3 +1,9 @@
+## 2026-03-11 – v3.3.1
+
+- Improve the flow for 8chan on a fresh app start
+- Clover will no longer connect to 8chan on startup
+- Fix an issue with the 8chan POWBlock cookie not being detected
+
 ## 2026-03-11 – v3.3.0
 
 - **New feature:** Add full support for 8chan (catalog, threads, posting, POW bypass, captchas)
