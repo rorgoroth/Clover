@@ -11,6 +11,28 @@ public class Chan8PowInterceptor implements Interceptor {
     private static volatile java.util.concurrent.CountDownLatch _latch = null;
     private static volatile okhttp3.OkHttpClient nonRedirectClient = null;
 
+    // Minimum gap between consecutive 8chan requests to avoid triggering the rate limiter.
+    private static final long MIN_REQUEST_INTERVAL_MS = 800L;
+    private static final java.util.concurrent.atomic.AtomicLong lastRequestMs =
+            new java.util.concurrent.atomic.AtomicLong(0L);
+
+    /** Enforces MIN_REQUEST_INTERVAL_MS between outgoing 8chan requests via CAS spin. */
+    private static void throttle() {
+        while (true) {
+            long now = System.currentTimeMillis();
+            long last = lastRequestMs.get();
+            long wait = MIN_REQUEST_INTERVAL_MS - (now - last);
+            if (wait <= 0) {
+                if (lastRequestMs.compareAndSet(last, now)) return;
+            } else {
+                try { Thread.sleep(wait); } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
+    }
+
     private static okhttp3.OkHttpClient getNonRedirectClient() {
         if (nonRedirectClient != null) return nonRedirectClient;
         synchronized (Chan8PowInterceptor.class) {
@@ -72,7 +94,29 @@ public class Chan8PowInterceptor implements Interceptor {
     public Response intercept(Chain chain) throws java.io.IOException {
         Request req = chain.request();
 
+        // Throttle all outgoing 8chan requests (except internal bypass/retry ones) so
+        // pin-watcher batch updates don't trigger the server's rate limiter.
+        if (req.url().host().contains("8chan") && req.header(POW_BYPASS_HEADER) == null) {
+            throttle();
+        }
+
         Response resp = chain.proceed(req);
+
+        // Handle 429 rate-limit: back off and retry once.
+        if (resp.code() == 429 && req.url().host().contains("8chan")) {
+            String retryAfterHeader = resp.header("Retry-After");
+            long sleepMs = 5_000L;
+            if (retryAfterHeader != null) {
+                try { sleepMs = Long.parseLong(retryAfterHeader.trim()) * 1000L; } catch (NumberFormatException ignored) {}
+            }
+            sleepMs = Math.min(sleepMs, 30_000L);
+            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "429 rate-limited; sleeping " + sleepMs + "ms before retry");
+            resp.close();
+            try { Thread.sleep(sleepMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            lastRequestMs.set(System.currentTimeMillis());
+            resp = chain.proceed(req);
+        }
+
         if (!req.url().host().contains("8chan") || req.header(POW_BYPASS_HEADER) != null) {
             return resp;
         }
@@ -166,7 +210,21 @@ public class Chan8PowInterceptor implements Interceptor {
                     .build();
 
             Response submitResp = getNonRedirectClient().newCall(submitReq).execute();
-            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW submit response: code=" + submitResp.code());
+            int submitCode = submitResp.code();
+            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW submit response: code=" + submitCode);
+            // If we get rate-limited on the POW submission, abandon and return the original 403/required response.
+            if (submitCode == 429) {
+                submitResp.close();
+                return new okhttp3.Response.Builder()
+                        .request(req)
+                        .protocol(okhttp3.Protocol.HTTP_1_1)
+                        .code(429)
+                        .message("Too Many Requests")
+                        .body(okhttp3.ResponseBody.create(
+                                okhttp3.MediaType.parse("text/plain; charset=utf-8"),
+                                "Rate limited"))
+                        .build();
+            }
 
             List<String> setCookies = submitResp.headers("Set-Cookie");
             if (!setCookies.isEmpty()) {

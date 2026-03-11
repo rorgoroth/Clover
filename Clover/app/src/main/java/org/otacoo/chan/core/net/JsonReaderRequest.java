@@ -57,6 +57,12 @@ public abstract class JsonReaderRequest<T> implements Callback {
             // 4xx errors (including 403 from POWBlock redirects) are auth issues, not
             // connectivity failures, so we do NOT switch domains for those.
             int respCode = response.code();
+            if (respCode == 429) {
+                response.close();
+                AndroidUtils.runOnUiThread(() -> listener.onError(
+                        "HTTP Error 429 Too Many Requests. You are being rate limited — please wait before retrying."));
+                return;
+            }
             if (respCode >= 500) {
                 String url = call.request().url().toString();
                 if (org.otacoo.chan.core.net.Chan8RateLimit.is8chan(url)) {
