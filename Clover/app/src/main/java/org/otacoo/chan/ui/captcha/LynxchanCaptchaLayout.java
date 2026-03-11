@@ -152,7 +152,24 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
                     }
                 }
 
-                // Fallback: read from the Android WebView CookieManager.
+                // Fallback: java.net CookieStore (written by OkHttp's AppCookieJar).
+                if (captchaId == null) {
+                    try {
+                        java.net.CookieManager jcm = org.otacoo.chan.core.di.NetModule.getSharedCookieManager();
+                        if (jcm != null) {
+                            java.util.List<java.net.HttpCookie> list =
+                                    jcm.getCookieStore().get(new java.net.URI(url));
+                            for (java.net.HttpCookie hc : list) {
+                                if ("captchaid".equals(hc.getName()) && !hc.getValue().isEmpty()) {
+                                    captchaId = hc.getValue();
+                                    break;
+                                }
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                // Last resort: WebView CookieManager.
                 if (captchaId == null) {
                     try {
                         String rawCookies = android.webkit.CookieManager.getInstance().getCookie(url);

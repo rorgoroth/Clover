@@ -42,4 +42,5 @@ public class ReplyResponse {
     public String password;
     public boolean probablyBanned;
     public boolean requireAuthentication;
+    public boolean isBypass;
 }

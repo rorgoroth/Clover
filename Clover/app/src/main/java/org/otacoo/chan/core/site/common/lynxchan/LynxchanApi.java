@@ -19,6 +19,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
+import okhttp3.HttpUrl;
+
 public class LynxchanApi extends CommonSite.CommonApi {
     private static final SimpleDateFormat ISO_8601;
 
@@ -61,6 +63,8 @@ public class LynxchanApi extends CommonSite.CommonApi {
                     readPostObject(reader, queue, false);
                 }
                 reader.endArray();
+            } else if (key.equals("flagData")) {
+                parseFlagData(reader, queue.getLoadable().board);
             } else if ((key.equals("message") || key.equals("comment")) && opMarkdownHandled) {
                 // "markdown" is the rendered HTML; "message" is raw source — skip raw source
                 // if we already captured the HTML version.
@@ -127,6 +131,9 @@ public class LynxchanApi extends CommonSite.CommonApi {
         String standalonePath = null;
         String standaloneThumb = null;
         String standaloneMime  = null;
+        String pendingFlag     = null;
+        String pendingFlagCode = null;
+        String pendingFlagName = null;
 
         reader.beginObject();
         boolean markdownHandled = false;
@@ -138,6 +145,12 @@ public class LynxchanApi extends CommonSite.CommonApi {
                 standaloneThumb = reader.nextString();
             } else if (key.equals("mime") && reader.peek() == JsonToken.STRING) {
                 standaloneMime = reader.nextString();
+            } else if (key.equals("flag") && reader.peek() == JsonToken.STRING) {
+                pendingFlag = reader.nextString();
+            } else if (key.equals("flagCode") && reader.peek() == JsonToken.STRING) {
+                pendingFlagCode = reader.nextString();
+            } else if (key.equals("flagName") && reader.peek() == JsonToken.STRING) {
+                pendingFlagName = reader.nextString();
             } else if ((key.equals("message") || key.equals("comment")) && markdownHandled) {
                 // "markdown" is the rendered HTML; "message" is raw source — skip raw source
                 // if we already captured the HTML version.
@@ -148,6 +161,19 @@ public class LynxchanApi extends CommonSite.CommonApi {
             }
         }
         reader.endObject();
+
+        if (pendingFlag != null && pendingFlagName != null) {
+            SiteEndpoints endpoints = queue.getLoadable().getSite().endpoints();
+            Map<String, String> flagArgs = SiteEndpoints.makeArgument("flag", pendingFlag);
+            HttpUrl flagUrl = endpoints.icon(builder, "country", flagArgs);
+            if (flagUrl != null) {
+                // Name hidden — uncomment to restore country/custom-flag label display:
+                // String code = (pendingFlagCode != null && pendingFlagCode.startsWith("-"))
+                //         ? pendingFlagCode.substring(1) : pendingFlagCode != null ? pendingFlagCode : "";
+                // String iconName = pendingFlagName + "/" + code;
+                builder.addHttpIcon(new org.otacoo.chan.core.model.PostHttpIcon(flagUrl, ""));
+            }
+        }
 
         if ((builder.images == null || builder.images.isEmpty())
                 && (standalonePath != null || standaloneThumb != null)) {
@@ -511,5 +537,31 @@ public class LynxchanApi extends CommonSite.CommonApi {
                 .imageHeight(height)
                 .size(size)
                 .build();
+    }
+
+    /** Parses the top-level {@code flagData} array and stores results in {@code board.boardFlags}. */
+    private void parseFlagData(JsonReader reader,
+            org.otacoo.chan.core.model.orm.Board board) throws Exception {
+        board.boardFlags.clear();
+        reader.beginArray();
+        while (reader.hasNext()) {
+            reader.beginObject();
+            String id = null, name = null;
+            while (reader.hasNext()) {
+                String k = reader.nextName();
+                if (k.equals("_id")) {
+                    id = reader.nextString();
+                } else if (k.equals("name")) {
+                    name = reader.nextString();
+                } else {
+                    reader.skipValue();
+                }
+            }
+            reader.endObject();
+            if (id != null && name != null) {
+                board.boardFlags.put(id, name);
+            }
+        }
+        reader.endArray();
     }
 }

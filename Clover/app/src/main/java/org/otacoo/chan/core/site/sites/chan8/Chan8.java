@@ -20,17 +20,32 @@ package org.otacoo.chan.core.site.sites.chan8;
 
 import androidx.annotation.Nullable;
 
-import org.otacoo.chan.core.model.orm.Loadable;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.otacoo.chan.core.model.orm.Board;
+import org.otacoo.chan.core.model.orm.Loadable;
+import org.otacoo.chan.core.site.Boards;
 import org.otacoo.chan.core.site.Site;
+import org.otacoo.chan.core.site.SiteActions;
 import org.otacoo.chan.core.site.SiteIcon;
 import org.otacoo.chan.core.site.common.CommonSite;
 import org.otacoo.chan.core.site.common.lynxchan.LynxchanActions;
 import org.otacoo.chan.core.site.common.lynxchan.LynxchanApi;
 import org.otacoo.chan.core.site.common.lynxchan.LynxchanCommentParser;
 import org.otacoo.chan.core.site.common.lynxchan.LynxchanEndpoints;
+import org.otacoo.chan.core.site.http.HttpCall;
+import org.otacoo.chan.core.site.http.LoginRequest;
+import org.otacoo.chan.core.site.http.LoginResponse;
+import org.otacoo.chan.core.site.http.ProgressRequestBody;
+import org.otacoo.chan.utils.Logger;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import okhttp3.HttpUrl;
+import okhttp3.Request;
+import okhttp3.Response;
 
 public class Chan8 extends CommonSite {
     public static final CommonSiteUrlHandler URL_HANDLER = new CommonSiteUrlHandler() {
@@ -72,21 +87,13 @@ public class Chan8 extends CommonSite {
         setIcon(SiteIcon.fromAssets("icons/8chan.webp"));
         setResolvable(URL_HANDLER);
 
-        setBoards(
-                Board.fromSiteNameCode(this, "Anime & Manga", "a"),
-                Board.fromSiteNameCode(this, "Random", "b"),
-                Board.fromSiteNameCode(this, "Gacha", "gacha"),
-                Board.fromSiteNameCode(this, "Video Games", "v"),
-                Board.fromSiteNameCode(this, "VTubers", "vyt")
-        );
-
-        // Engine is Lynxchan, boards are dynamic (added manually)
+        // Engine is Lynxchan, boards are dynamic (fetched from /boards.js)
         setBoardsType(BoardsType.DYNAMIC);
 
         setEndpoints(new LynxchanEndpoints(this, "https://8chan.moe"));
 
-        // Use the generic Lynxchan implementations for core behavior
-        setActions(new LynxchanActions(this));
+        // Use Chan8Actions (extends LynxchanActions) for 8chan-specific login behaviour
+        setActions(new Chan8Actions(this));
         setApi(new LynxchanApi(this));
         setParser(new LynxchanCommentParser());
 
@@ -96,5 +103,74 @@ public class Chan8 extends CommonSite {
                 return feature == Feature.POSTING || feature == Feature.LOGIN;
             }
         });
+    }
+
+    private static class Chan8Actions extends LynxchanActions {
+        private static final String TAG = "Chan8Actions";
+
+        Chan8Actions(CommonSite site) {
+            super(site);
+        }
+
+        @Override
+        public void boards(BoardsListener boardsListener) {
+            HttpCall call = new HttpCall(site) {
+                @Override
+                public void setup(Request.Builder requestBuilder,
+                        ProgressRequestBody.ProgressRequestListener progressListener) {
+                }
+
+                @Override
+                public void process(Response response, String result) throws IOException {
+                    try {
+                        JSONObject obj = new JSONObject(result);
+                        JSONArray arr = obj.getJSONArray("topBoards");
+                        List<Board> boards = new ArrayList<>(arr.length());
+                        for (int i = 0; i < arr.length(); i++) {
+                            JSONObject b = arr.getJSONObject(i);
+                            boards.add(Board.fromSiteNameCode(
+                                    site,
+                                    b.getString("boardName"),
+                                    b.getString("boardUri")));
+                        }
+                        Logger.d(TAG, "boards: parsed " + boards.size() + " top boards");
+                        boardsListener.onBoardsReceived(new Boards(boards));
+                    } catch (Exception e) {
+                        Logger.e(TAG, "boards: parse error", e);
+                        throw new IOException("Failed to parse index.json", e);
+                    }
+                }
+            };
+
+            HttpUrl indexUrl = ((LynxchanEndpoints) site.endpoints()).root()
+                    .newBuilder().addPathSegment("index.json").build();
+            call.url(indexUrl.toString());
+            site.getHttpCallManager().makeHttpCall(call, new HttpCall.HttpCallback<HttpCall>() {
+                @Override
+                public void onHttpSuccess(HttpCall httpCall) {}
+
+                @Override
+                public void onHttpFail(HttpCall httpCall, Exception e) {
+                    Logger.e(TAG, "boards: fetch failed", e);
+                    boardsListener.onBoardsReceived(new Boards(new ArrayList<>()));
+                }
+            });
+        }
+
+        @Override
+        public void login(LoginRequest loginRequest, SiteActions.LoginListener loginListener) {
+            // 8chan has no username/password — verify by syncing cookies from a browser visit.
+            String url = ((LynxchanEndpoints) site.endpoints()).root().toString();
+            org.otacoo.chan.core.di.NetModule.syncCookiesToJar(url);
+            LoginResponse r = new LoginResponse();
+            if (isLoggedIn()) {
+                r.success = true;
+                r.message = "Session verified.";
+            } else {
+                r.success = false;
+                r.message = "Please open 8chan.moe in your browser, solve the security check and accept the TOS, then tap Login again.";
+            }
+            loginListener.onLoginComplete(null, r);
+        }
     }
 }

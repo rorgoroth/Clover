@@ -29,6 +29,8 @@ import org.otacoo.chan.utils.Logger;
 
 public class LynxchanActions extends CommonSite.CommonActions {
     private static final String TAG = "LynxchanActions";
+    private boolean lastPostWasBypassable = false;
+
     public LynxchanActions(CommonSite commonSite) {
         super(commonSite);
     }
@@ -140,6 +142,10 @@ public class LynxchanActions extends CommonSite.CommonActions {
             call.parameter("password", reply.password);
         }
 
+        if (!isEmpty(reply.flag)) {
+            call.parameter("flag", reply.flag);
+        }
+
         // Support both legacy single file and new multiple files
         if (!reply.fileAttachments.isEmpty()) {
             // New multiple file support
@@ -168,6 +174,9 @@ public class LynxchanActions extends CommonSite.CommonActions {
                 + " body=" + result.substring(0, Math.min(result.length(), 512))
                         .replace("\n", "\\n"));
 
+        // Sync cookies back to WebView so things like 'bypass' tokens are persisted.
+        syncCookiesToWebView(response);
+
         // Lynxchan returns HTML instead of JSON for challenge/error pages when
         // cookies are stale — detect this before attempting JSON parse.
         String trimmed = result.trim();
@@ -186,6 +195,7 @@ public class LynxchanActions extends CommonSite.CommonActions {
             switch (status) {
                 case "ok": {
                     replyResponse.posted = true;
+                    lastPostWasBypassable = false;
                     // Lynxchan returns the new post/thread number in the "data" field.
                     Object data = json.opt("data");
                     if (data instanceof Number) {
@@ -215,9 +225,10 @@ public class LynxchanActions extends CommonSite.CommonActions {
                     break;
                 }
                 case "bypassable":
-                    // Server wants a captcha bypass solved before accepting the post.
+                    // Server wants a block bypass solved before accepting the post.
                     replyResponse.requireAuthentication = true;
-                    replyResponse.errorMessage = "Captcha required to post.";
+                    replyResponse.isBypass = true;
+                    lastPostWasBypassable = true;
                     break;
                 case "hashban":
                     replyResponse.probablyBanned = true;
@@ -248,6 +259,18 @@ public class LynxchanActions extends CommonSite.CommonActions {
         }
     }
 
+    private void syncCookiesToWebView(Response response) {
+        String url = response.request().url().toString();
+        List<String> setCookies = response.headers("Set-Cookie");
+        if (!setCookies.isEmpty()) {
+            CookieManager cm = CookieManager.getInstance();
+            for (String cookie : setCookies) {
+                cm.setCookie(url, cookie);
+            }
+            cm.flush();
+        }
+    }
+
     @Override
     public void setupDelete(DeleteRequest deleteRequest, MultipartHttpCall call) {
         call.parameter("boardUri", deleteRequest.post.board.code);
@@ -270,8 +293,42 @@ public class LynxchanActions extends CommonSite.CommonActions {
     }
 
     @Override
+    public boolean postRequiresAuthentication() {
+        return !isLoggedIn() || !hasBypassCookie();
+    }
+
+    @Override
     public SiteAuthentication postAuthenticate() {
-        return SiteAuthentication.fromNone();
+        String root = ((LynxchanEndpoints) site.endpoints()).root().toString();
+        if (lastPostWasBypassable) {
+            return SiteAuthentication.fromLynxchanBypass(root);
+        }
+        if (isLoggedIn() && !hasBypassCookie()) {
+            return SiteAuthentication.fromLynxchanBypass(root);
+        }
+        return SiteAuthentication.fromLynxchanCaptcha(root);
+    }
+
+    private boolean hasBypassCookie() {
+        String[] urls = {"https://8chan.moe/", "https://8chan.st/", "https://8chan.cc/"};
+        java.net.CookieManager cm = org.otacoo.chan.core.di.NetModule.getSharedCookieManager();
+        if (cm != null) {
+            for (String url : urls) {
+                try {
+                    java.util.List<java.net.HttpCookie> list =
+                            cm.getCookieStore().get(new java.net.URI(url));
+                    for (java.net.HttpCookie c : list) {
+                        if ("bypass".equals(c.getName()) && !c.getValue().isEmpty()) return true;
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+        CookieManager wvcm = CookieManager.getInstance();
+        for (String url : urls) {
+            String raw = wvcm.getCookie(url);
+            if (raw != null && raw.contains("bypass=")) return true;
+        }
+        return false;
     }
 
     @Override
@@ -293,12 +350,27 @@ public class LynxchanActions extends CommonSite.CommonActions {
         }
         
         StringBuilder allCookies = new StringBuilder();
-        CookieManager cm = CookieManager.getInstance();
-        for (String url : urls) {
-            String c = cm.getCookie(url);
-            if (c != null && !c.isEmpty()) {
-                if (allCookies.length() > 0) allCookies.append("; ");
-                allCookies.append(c);
+        // Prefer the shared java.net cookie manager (centralized jar) when available
+        java.net.CookieManager shared = org.otacoo.chan.core.di.NetModule.getSharedCookieManager();
+        if (shared != null) {
+            for (String url : urls) {
+                try {
+                    java.net.URI uri = new java.net.URI(url);
+                    List<java.net.HttpCookie> list = shared.getCookieStore().get(uri);
+                    for (java.net.HttpCookie hc : list) {
+                        if (allCookies.length() > 0) allCookies.append("; ");
+                        allCookies.append(hc.getName()).append("=").append(hc.getValue());
+                    }
+                } catch (Exception ignored) {}
+            }
+        } else {
+            CookieManager cm = CookieManager.getInstance();
+            for (String url : urls) {
+                String c = cm.getCookie(url);
+                if (c != null && !c.isEmpty()) {
+                    if (allCookies.length() > 0) allCookies.append("; ");
+                    allCookies.append(c);
+                }
             }
         }
         

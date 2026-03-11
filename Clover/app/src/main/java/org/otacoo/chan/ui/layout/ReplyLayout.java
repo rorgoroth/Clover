@@ -72,6 +72,7 @@ import org.otacoo.chan.ui.captcha.AuthenticationLayoutCallback;
 import org.otacoo.chan.ui.captcha.AuthenticationLayoutInterface;
 import org.otacoo.chan.ui.captcha.CaptchaLayout;
 import org.otacoo.chan.ui.captcha.GenericWebViewAuthenticationLayout;
+import org.otacoo.chan.ui.captcha.LynxchanBypassLayout;
 import org.otacoo.chan.ui.captcha.LynxchanCaptchaLayout;
 import org.otacoo.chan.ui.captcha.NewCaptchaLayout;
 import org.otacoo.chan.ui.drawable.DropdownArrowDrawable;
@@ -527,6 +528,9 @@ public class ReplyLayout extends LoadView implements
                 case LYNXCHAN_CAPTCHA:
                     typeMatches = authenticationLayout instanceof LynxchanCaptchaLayout;
                     break;
+                case LYNXCHAN_BYPASS:
+                    typeMatches = authenticationLayout instanceof LynxchanBypassLayout;
+                    break;
             }
             
             if (!typeMatches) {
@@ -564,6 +568,11 @@ public class ReplyLayout extends LoadView implements
                 case LYNXCHAN_CAPTCHA: {
                     authenticationLayout = new LynxchanCaptchaLayout(getContext());
                     Logger.i("ReplyLayout", "Created LynxchanCaptchaLayout");
+                    break;
+                }
+                case LYNXCHAN_BYPASS: {
+                    authenticationLayout = new LynxchanBypassLayout(getContext());
+                    Logger.i("ReplyLayout", "Created LynxchanBypassLayout");
                     break;
                 }
                 case NONE:
@@ -750,6 +759,11 @@ public class ReplyLayout extends LoadView implements
     @Override
     public void showFlag(boolean show) {
         flag.setVisibility(show ? View.VISIBLE : View.GONE);
+        // If the board has flags, always keep the name/options row visible so the
+        // flag selector is accessible without pressing "More".
+        if (show) {
+            nameOptions.setVisibility(View.VISIBLE);
+        }
     }
 
     @Override
@@ -776,7 +790,9 @@ public class ReplyLayout extends LoadView implements
     @Override
     public void openNameOptions(boolean open) {
         openingName = open;
-        nameOptions.setVisibility(open ? View.VISIBLE : View.GONE);
+        // Keep the row visible if the flag button is showing (board has custom flags).
+        boolean flagVisible = flag.getVisibility() == View.VISIBLE;
+        nameOptions.setVisibility((open || flagVisible) ? View.VISIBLE : View.GONE);
     }
 
     @Override

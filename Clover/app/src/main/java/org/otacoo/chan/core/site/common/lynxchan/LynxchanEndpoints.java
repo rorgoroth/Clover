@@ -72,6 +72,11 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
 
     @Override
     public HttpUrl icon(Post.Builder post, String icon, Map<String, String> arg) {
+        String flagPath = arg.get("flag");
+        if (flagPath != null) {
+            if (flagPath.startsWith("/")) flagPath = flagPath.substring(1);
+            return root.builder().ss(flagPath).url();
+        }
         return null;
     }
 
@@ -104,6 +109,8 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
         return root.builder().s("captcha.js").url();
     }
 
+    // Not used for 8chan (captcha is submitted inline with the post form).
+    // May be needed for other Lynxchan sites with a separate captcha-solve step.
     public HttpUrl solveCaptcha() {
         return root.builder().s("solveCaptcha.js").url();
     }

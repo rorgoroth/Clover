@@ -25,7 +25,8 @@ public class SiteAuthentication {
         CAPTCHA2_NOJS,
         GENERIC_WEBVIEW,
         NEW_CAPTCHA,
-        LYNXCHAN_CAPTCHA
+        LYNXCHAN_CAPTCHA,
+        LYNXCHAN_BYPASS
     }
 
     public static SiteAuthentication fromNone() {
@@ -69,6 +70,12 @@ public class SiteAuthentication {
 
     public static SiteAuthentication fromLynxchanCaptcha(String baseUrl) {
         SiteAuthentication a = new SiteAuthentication(Type.LYNXCHAN_CAPTCHA);
+        a.baseUrl = baseUrl;
+        return a;
+    }
+
+    public static SiteAuthentication fromLynxchanBypass(String baseUrl) {
+        SiteAuthentication a = new SiteAuthentication(Type.LYNXCHAN_BYPASS);
         a.baseUrl = baseUrl;
         return a;
     }
