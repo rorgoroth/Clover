@@ -183,20 +183,22 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         sourceList.clear();
         sourceList.addAll(thread.posts);
 
-        displayList.clear();
-        displayList.addAll(filter.apply(sourceList));
-
-        lastSeenIndicatorPosition = -1;
+        int newLastSeen = -1;
         if (lastViewed >= 0) {
-            // Do not process the last post, the indicator does not have to appear at the bottom
-            for (int i = 0, displayListSize = displayList.size() - 1; i < displayListSize; i++) {
-                Post post = displayList.get(i);
-                if (post.no == lastViewed) {
-                    lastSeenIndicatorPosition = i + 1;
+            List<Post> filtered = filter.apply(sourceList);
+            displayList.clear();
+            displayList.addAll(filtered);
+            for (int i = 0, size = displayList.size() - 1; i < size; i++) {
+                if (displayList.get(i).no == lastViewed) {
+                    newLastSeen = i + 1;
                     break;
                 }
             }
+        } else {
+            displayList.clear();
+            displayList.addAll(filter.apply(sourceList));
         }
+        lastSeenIndicatorPosition = newLastSeen;
 
         // Update all, recyclerview will figure out all the animations
         notifyDataSetChanged();

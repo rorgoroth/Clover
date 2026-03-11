@@ -35,29 +35,34 @@ public class PushControllerTransition extends ControllerTransition {
             return;
         }
 
-        AndroidUtils.waitForMeasure(to.view, new AndroidUtils.OnMeasuredCallback() {
-            @Override
-            public boolean onMeasured(View view) {
-                Animator toAlpha = ObjectAnimator.ofFloat(to.view, View.ALPHA, 0f, 1f);
-                toAlpha.setDuration(100);
-                toAlpha.setInterpolator(new DecelerateInterpolator(2f));
-
-                Animator toY = ObjectAnimator.ofFloat(to.view, View.TRANSLATION_Y, to.view.getHeight() * 0.08f, 0f);
-                toY.setDuration(200);
-                toY.setInterpolator(new DecelerateInterpolator(2.5f));
-
-                toY.addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        onCompleted();
-                    }
-                });
-
-                AnimatorSet set = new AnimatorSet();
-                set.playTogether(toAlpha, toY);
-                set.start();
+        if (to.view.getWidth() > 0 && to.view.getHeight() > 0) {
+            startAnimation(to.view.getHeight());
+        } else {
+            AndroidUtils.waitForMeasure(to.view, view -> {
+                startAnimation(view.getHeight());
                 return true;
+            });
+        }
+    }
+
+    private void startAnimation(int height) {
+        Animator toAlpha = ObjectAnimator.ofFloat(to.view, View.ALPHA, 0f, 1f);
+        toAlpha.setDuration(100);
+        toAlpha.setInterpolator(new DecelerateInterpolator(2f));
+
+        Animator toY = ObjectAnimator.ofFloat(to.view, View.TRANSLATION_Y, height * 0.08f, 0f);
+        toY.setDuration(200);
+        toY.setInterpolator(new DecelerateInterpolator(2.5f));
+
+        toY.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                onCompleted();
             }
         });
+
+        AnimatorSet set = new AnimatorSet();
+        set.playTogether(toAlpha, toY);
+        set.start();
     }
 }
