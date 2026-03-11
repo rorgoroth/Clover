@@ -22,6 +22,7 @@ import static org.otacoo.chan.utils.AndroidUtils.sp;
 import static org.otacoo.chan.utils.AndroidUtils.getString;
 
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.BackgroundColorSpan;
 import android.text.style.UnderlineSpan;
@@ -48,7 +49,6 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.parser.Parser;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @AnyThread
@@ -218,24 +218,19 @@ public class DefaultPostParser implements PostParser {
     }
 
     private CharSequence parseComment(Theme theme, Post.Builder post, CharSequence commentRaw, Callback callback) {
-        CharSequence total = new SpannableString("");
+        SpannableStringBuilder total = new SpannableStringBuilder();
 
         try {
             String comment = commentRaw.toString().replace("<wbr>", "");
 
             Document document = Jsoup.parseBodyFragment(comment);
 
-            List<Node> nodes = document.body().childNodes();
-            List<CharSequence> texts = new ArrayList<>(nodes.size());
-
-            for (Node node : nodes) {
+            for (Node node : document.body().childNodes()) {
                 CharSequence nodeParsed = parseNode(theme, post, callback, node);
                 if (nodeParsed != null) {
-                    texts.add(nodeParsed);
+                    total.append(nodeParsed);
                 }
             }
-
-            total = TextUtils.concat(texts.toArray(new CharSequence[texts.size()]));
         } catch (Exception e) {
             Logger.e(TAG, "Error parsing comment html", e);
         }
@@ -255,35 +250,22 @@ public class DefaultPostParser implements PostParser {
             String nodeName = node.nodeName();
 
             // Recursively call parseNode with the nodes of the paragraph.
-            List<Node> innerNodes = node.childNodes();
-            List<CharSequence> texts = new ArrayList<>(innerNodes.size() + 1);
-
-            for (Node innerNode : innerNodes) {
+            SpannableStringBuilder innerBuilder = new SpannableStringBuilder();
+            for (Node innerNode : node.childNodes()) {
                 CharSequence nodeParsed = parseNode(theme, post, callback, innerNode);
                 if (nodeParsed != null) {
-                    texts.add(nodeParsed);
+                    innerBuilder.append(nodeParsed);
                 }
             }
-
-//            if (node.nextSibling() != null) {
-//                texts.add("\n");
-//            }
-
-            CharSequence allInnerText = TextUtils.concat(
-                    texts.toArray(new CharSequence[texts.size()]));
 
             CharSequence result = commentParser.handleTag(
                     callback,
                     theme,
                     post,
                     nodeName,
-                    allInnerText,
+                    innerBuilder,
                     (Element) node);
-            if (result != null) {
-                return result;
-            } else {
-                return allInnerText;
-            }
+            return result != null ? result : innerBuilder;
         } else {
             return ""; // ?
         }

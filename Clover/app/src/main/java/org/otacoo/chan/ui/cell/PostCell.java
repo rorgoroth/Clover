@@ -35,6 +35,7 @@ import android.os.Build;
 import android.text.Layout;
 import android.text.Spannable;
 import android.text.SpannableString;
+import android.text.SpannableStringBuilder;
 import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
@@ -396,14 +397,14 @@ public class PostCell extends LinearLayout implements PostCellInterface {
 
         buildThumbnails();
 
-        List<CharSequence> titleParts = new ArrayList<>(5);
+        SpannableStringBuilder titleBuilder = new SpannableStringBuilder();
 
         if (post.subjectSpan != null) {
-            titleParts.add(post.subjectSpan);
-            titleParts.add("\n");
+            titleBuilder.append(post.subjectSpan);
+            titleBuilder.append("\n");
         }
 
-        titleParts.add(post.nameTripcodeIdCapcodeSpan);
+        titleBuilder.append(post.nameTripcodeIdCapcodeSpan);
 
         CharSequence time;
         if (ChanSettings.postFullDate.get()) {
@@ -431,22 +432,22 @@ public class PostCell extends LinearLayout implements PostCellInterface {
             date.setSpan(new NoClickableSpan(), 0, noText.length(), 0);
         }
 
-        titleParts.add(date);
+        titleBuilder.append(date);
 
         if (!post.images.isEmpty()) {
             boolean postFileName = ChanSettings.postFilename.get();
             boolean postFileInfo = ChanSettings.postFileInfo.get();
             for (int i = 0; i < post.images.size(); i++) {
                 if (postFileName && post.fileNameSpans != null) {
-                    titleParts.add(post.fileNameSpans[i]);
+                    titleBuilder.append(post.fileNameSpans[i]);
                 }
                 if (postFileInfo && post.fileInfoSpans != null) {
-                    titleParts.add(post.fileInfoSpans[i]);
+                    titleBuilder.append(post.fileInfoSpans[i]);
                 }
             }
         }
 
-        title.setText(TextUtils.concat(titleParts.toArray(new CharSequence[titleParts.size()])));
+        title.setText(titleBuilder);
 
         icons.edit();
         icons.set(PostIcons.STICKY, post.isSticky());
