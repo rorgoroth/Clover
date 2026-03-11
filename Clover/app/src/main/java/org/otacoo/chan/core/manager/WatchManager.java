@@ -191,7 +191,7 @@ public class WatchManager {
         pin.loadable.title = PostHelper.getTitle(opPost, loadable);
         if (opPost != null) {
             PostImage image = opPost.image();
-            pin.thumbnailUrl = image == null ? "" : image.getThumbnailUrl().toString();
+            pin.thumbnailUrl = image == null || image.thumbnailUrl == null ? "" : image.thumbnailUrl.toString();
         }
         return createPin(pin);
     }
