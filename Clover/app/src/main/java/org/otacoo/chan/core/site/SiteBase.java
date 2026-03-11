@@ -83,7 +83,7 @@ public abstract class SiteBase implements Site {
         //            boardManager.updateAvailableBoardsForSite(site, boards.boards));
         //}
 
-        if (boardsType().canList) {
+        if (boardsType().canList && !boardManager.getSiteSavedBoards(this).isEmpty()) {
            actions().boards(boards -> boardManager.updateAvailableBoardsForSite(this, boards.boards));
         }
 
