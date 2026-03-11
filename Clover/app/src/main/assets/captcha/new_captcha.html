@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="__COLOR_SCHEME__">
     <style>
         body {
             overflow-y: auto;
@@ -11,6 +12,7 @@
             background: __C_BG__;
             color: __C_FG__;
             font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            color-scheme: __COLOR_SCHEME__;
         }
         #t-root {
             width: 100%;
@@ -719,16 +721,17 @@ function buildFromJson(data) {
     if (data.twister) data = data.twister;
     if (data.single_view !== undefined) isSingleView = !!data.single_view;
 
+    if (data.ticket) {
+        window.savedTicket = data.ticket;
+        try { CaptchaCallback.saveTicket(data.ticket); } catch(e) {}
+    }
+
     if (data.pcd_msg != null && (data.pcd === undefined || data.pcd === null)) {
         document.getElementById('t-msg').style.display = 'block';
         document.getElementById('t-msg').classList.add('with-warning');
         document.getElementById('t-msg-main').innerHTML = cooldownMessage(data.pcd_msg);
         document.getElementById('t-msg-secondary').textContent = '';
         showMsgButton('Get Captcha', false);
-        if (data.ticket) {
-            CaptchaCallback.saveTicket(data.ticket);
-            window.savedTicket = data.ticket;
-        }
         return;
     }
 
@@ -739,11 +742,6 @@ function buildFromJson(data) {
 
     if (data.pcd !== undefined && data.pcd !== null) {
         var pcd = parseCountdown(data.pcd);
-        if (data.ticket) {
-            CaptchaCallback.saveTicket(data.ticket);
-            window.savedTicket = data.ticket;
-            data.ticket = undefined;
-        }
         document.getElementById('t-msg').style.display = 'block';
         document.getElementById('t-msg').classList.add('with-warning');
         document.getElementById('t-msg-main').innerHTML = 'Please wait a while before making a post or <a href="' + SIGNIN_LINK + '" target="_blank">verify your email here.</a>';
