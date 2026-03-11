@@ -18,6 +18,12 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
     }
 
     public HttpUrl root() {
+        String url = root.url().toString();
+        if (org.otacoo.chan.core.net.Chan8RateLimit.is8chan(url)) {
+            String rewritten = org.otacoo.chan.core.net.Chan8RateLimit.rewriteToActiveDomain(url);
+            HttpUrl parsed = HttpUrl.parse(rewritten);
+            if (parsed != null) return parsed;
+        }
         return root.url();
     }
 
@@ -85,8 +91,28 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
         return root.builder().s("login.html").url();
     }
 
+    public HttpUrl blockBypass() {
+        return root.builder().s("blockBypass.js").url();
+    }
+
     @Override
     public HttpUrl report(Post post) {
         return root.builder().s(post.board.code).s("reportPost").url();
+    }
+
+    public HttpUrl captcha() {
+        return root.builder().s("captcha.js").url();
+    }
+
+    public HttpUrl solveCaptcha() {
+        return root.builder().s("solveCaptcha.js").url();
+    }
+
+    public HttpUrl renewBypass() {
+        return root.builder().s("renewBypass.js").url();
+    }
+
+    public HttpUrl validateBypass() {
+        return root.builder().s("validateBypass.js").url();
     }
 }
