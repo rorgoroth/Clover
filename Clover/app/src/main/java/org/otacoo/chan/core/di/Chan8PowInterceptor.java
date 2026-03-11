@@ -154,6 +154,9 @@ public class Chan8PowInterceptor implements Interceptor {
             org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW submit URL: " + (submitUrl.length() > 120 ? submitUrl.substring(0, 120) + "…" : submitUrl));
 
             resp.close();
+            // Clear stale POW cookies (e.g. from a restored backup) before submitting the
+            // solution, so the server starts a clean session from the new tokens.
+            clearPowCookieStore(req.url().host());
 
             Request submitReq = req.newBuilder()
                     .url(submitUrl)
