@@ -516,32 +516,15 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
 
                 // if we see the fingerprint landing page, tokens are likely stale.
                 if (body.contains("mcl.io") || body.contains("spur.us")) {
-                    Logger.i(TAG, "interceptCaptchaRequest: fingerprint page detected, clearing stale tokens");
-                    maybeToast("Captcha tokens (mcl.js) appear to have expired; refreshing...", true);
-                    clearFingerprintCookies();
+                    Logger.i(TAG, "interceptCaptchaRequest: fingerprint page detected, deferring to native load");
+                    maybeToast("Fingerprinting appears stale. Refreshing...", false);
+                    refreshFingerprintSession();
                     skipInterceptNextLoad = true;
                     return null;
                 }
 
                 String payload = extractTwisterPayload(body);
                 if (payload != null) {
-                    // if we keep getting only cooldown data after timer, treat as stale
-                    try {
-                        JSONObject obj = new JSONObject(payload);
-                        JSONObject tw = obj.optJSONObject("twister");
-                        if (tw == null) tw = obj;
-                        boolean hasTasks = tw.has("tasks") || tw.has("img");
-                        int pcd = tw.optInt("pcd", -1);
-                        int cd = tw.optInt("cd", -1);
-                        if (!hasTasks && (pcd <= 0 && cd <= 0)) {
-                            Logger.i(TAG, "interceptCaptchaRequest: cooldown finished but no challenge, assuming stale tokens");
-                            maybeToast("No captcha challenge arrived after cooldown; tokens may be bad, reloading.", true);
-                            clearFingerprintCookies();
-                            skipInterceptNextLoad = true;
-                            return null;
-                        }
-                    } catch (Exception ignored) {}
-
                     persistTicket(payload);
                     String assetHtml = loadAssetWithCaptchaData(payload);
                     if (assetHtml != null) {
@@ -876,6 +859,18 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
             }
         }
         return set.isEmpty() ? null : TextUtils.join("; ", set);
+    }
+
+    // Clears only in-memory state and localStorage so 4chan can re-run fingerprinting (mcl.js / Cloudflare). Does NOT delete any cookies.
+    private void refreshFingerprintSession() {
+        ticket = "";
+        globalPayloads.clear();
+        globalCooldowns.clear();
+        globalExpiries.clear();
+        AndroidUtils.runOnUiThread(() -> {
+            showingOverlay = false;
+            evaluateJavascript("localStorage.clear(); sessionStorage.clear();", null);
+        });
     }
 
     private void clearFingerprintCookies() {
