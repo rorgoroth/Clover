@@ -32,6 +32,7 @@ import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -171,7 +172,10 @@ public class ImageViewerController extends Controller implements ImageViewerPres
         hideSystemUI();
 
         // View setup
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        Window window = getWindow();
+        if (window != null) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
 
         view = inflateRes(R.layout.controller_image_viewer);
         previewImage = view.findViewById(R.id.preview_image);
@@ -246,7 +250,10 @@ public class ImageViewerController extends Controller implements ImageViewerPres
         if (ChanSettings.openLinkBrowser.get()) {
             AndroidUtils.openLink(postImage.imageUrl.toString());
         } else {
-            AndroidUtils.openLinkInBrowser((Activity) context, postImage.imageUrl.toString());
+            Activity activity = getActivity();
+            if (activity != null) {
+                AndroidUtils.openLinkInBrowser(activity, postImage.imageUrl.toString());
+            }
         }
     }
 
@@ -318,7 +325,10 @@ public class ImageViewerController extends Controller implements ImageViewerPres
 
         showSystemUI();
         handler.removeCallbacksAndMessages(null);
-        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        Window window = getWindow();
+        if (window != null) {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        }
         if (inTransitionCall != null) {
             inTransitionCall.cancel();
         }
@@ -456,7 +466,10 @@ public class ImageViewerController extends Controller implements ImageViewerPres
                 for (ImageSearch imageSearch : ImageSearch.engines) {
                     if (Objects.equals(item.getId(), imageSearch.getId())) {
                         final HttpUrl searchImageUrl = getSearchImageUrl(presenter.getCurrentPostImage());
-                        AndroidUtils.openLinkInBrowser((Activity) context, imageSearch.getUrl(searchImageUrl.toString()));
+                        Activity activity = getActivity();
+                        if (activity != null) {
+                            AndroidUtils.openLinkInBrowser(activity, imageSearch.getUrl(searchImageUrl.toString()));
+                        }
                         break;
                     }
                 }
@@ -478,7 +491,10 @@ public class ImageViewerController extends Controller implements ImageViewerPres
         ThumbnailView startImageView = getTransitionImageView(postImage);
 
         if (trySetupTransitionView(startImageView)) {
-            statusBarColorPrevious = getWindow().getStatusBarColor();
+            Window window = getWindow();
+            if (window != null) {
+                statusBarColorPrevious = window.getStatusBarColor();
+            }
 
             setBackgroundAlpha(0f);
 
@@ -520,7 +536,11 @@ public class ImageViewerController extends Controller implements ImageViewerPres
                 public void onFailure(@NonNull Call call, @NonNull IOException e) {
                     inTransitionCall = null;
                     Log.e(TAG, "onFailure for preview in transition", e);
-                    AndroidUtils.runOnUiThread(startAnimation::start);
+                    AndroidUtils.runOnUiThread(() -> {
+                        if (alive && startAnimation != null) {
+                            startAnimation.start();
+                        }
+                    });
                 }
 
                 @Override
@@ -533,15 +553,21 @@ public class ImageViewerController extends Controller implements ImageViewerPres
                                     Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
                                     if (bitmap != null) {
                                         AndroidUtils.runOnUiThread(() -> {
-                                            previewImage.setBitmap(bitmap);
-                                            startAnimation.start();
+                                            if (alive && startAnimation != null) {
+                                                previewImage.setBitmap(bitmap);
+                                                startAnimation.start();
+                                            }
                                         });
                                         return;
                                     }
                                 }
                             }
                         }
-                        AndroidUtils.runOnUiThread(startAnimation::start);
+                        AndroidUtils.runOnUiThread(() -> {
+                            if (alive && startAnimation != null) {
+                                startAnimation.start();
+                            }
+                        });
                     } finally {
                         inTransitionCall = null;
                     }
@@ -676,7 +702,10 @@ public class ImageViewerController extends Controller implements ImageViewerPres
     }
 
     private void setStatusBarColor(int color) {
-        getWindow().setStatusBarColor(color);
+        Window window = getWindow();
+        if (window != null) {
+            window.setStatusBarColor(color);
+        }
     }
 
     private void setToolbarBackgroundAlpha(float alpha) {
@@ -695,26 +724,28 @@ public class ImageViewerController extends Controller implements ImageViewerPres
 
         isInImmersiveMode = true;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Window window = getWindow();
-            window.setDecorFitsSystemWindows(false);
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            }
-        } else {
-            View decorView = getWindow().getDecorView();
-            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                    | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                    | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
-
-            decorView.setOnSystemUiVisibilityChangeListener(visibility -> {
-                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 && isInImmersiveMode) {
-                    showSystemUI();
-                    handler.postDelayed(this::hideSystemUI, 2500);
+        Window window = getWindow();
+        if (window != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(false);
+                WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    controller.hide(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                    controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
                 }
-            });
+            } else {
+                View decorView = window.getDecorView();
+                decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_FULLSCREEN);
+
+                decorView.setOnSystemUiVisibilityChangeListener(visibility -> {
+                    if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0 && isInImmersiveMode) {
+                        showSystemUI();
+                        handler.postDelayed(this::hideSystemUI, 2500);
+                    }
+                });
+            }
         }
 
         ViewGroup.LayoutParams params = navigationController.getToolbar().getLayoutParams();
@@ -742,17 +773,19 @@ public class ImageViewerController extends Controller implements ImageViewerPres
 
         isInImmersiveMode = false;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            Window window = getWindow();
-            window.setDecorFitsSystemWindows(true);
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                controller.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+        Window window = getWindow();
+        if (window != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                window.setDecorFitsSystemWindows(true);
+                WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    controller.show(WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars());
+                }
+            } else {
+                View decorView = window.getDecorView();
+                decorView.setOnSystemUiVisibilityChangeListener(null);
+                decorView.setSystemUiVisibility(0);
             }
-        } else {
-            View decorView = getWindow().getDecorView();
-            decorView.setOnSystemUiVisibilityChangeListener(null);
-            decorView.setSystemUiVisibility(0);
         }
 
         ViewGroup.LayoutParams params = navigationController.getToolbar().getLayoutParams();
@@ -763,7 +796,19 @@ public class ImageViewerController extends Controller implements ImageViewerPres
     }
 
     private Window getWindow() {
-        return ((Activity) context).getWindow();
+        Activity activity = getActivity();
+        return activity != null ? activity.getWindow() : null;
+    }
+
+    private Activity getActivity() {
+        Context context = this.context;
+        while (context instanceof ContextWrapper) {
+            if (context instanceof Activity) {
+                return (Activity) context;
+            }
+            context = ((ContextWrapper) context).getBaseContext();
+        }
+        return null;
     }
 
     public interface ImageViewerCallback {
