@@ -156,7 +156,7 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
         attachToolbarScroll(true);
 
         if (ChanSettings.toolbarBottom.get()) {
-            reply.setPadding(0, 0, 0, toolbarHeight());
+            reply.setPadding(0, 0, 0, 0);
             searchStatus.setPadding(searchStatus.getPaddingLeft(), searchStatus.getPaddingTop(),
                     searchStatus.getPaddingRight(), searchStatus.getPaddingBottom() + toolbarHeight());
         } else {

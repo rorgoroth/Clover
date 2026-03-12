@@ -634,6 +634,12 @@ public class ReplyLayout extends LoadView implements
                     }
                 }
 
+                if (ChanSettings.toolbarBottom.get()) {
+                    captchaContainer.setPadding(0, 0, 0,
+                            getResources().getDimensionPixelSize(R.dimen.toolbar_height));
+                } else {
+                    captchaContainer.setPadding(0, 0, 0, 0);
+                }
                 setView(captchaContainer);
                 View focus = getRootView() != null ? getRootView().findFocus() : null;
                 if (focus != null) focus.clearFocus();
