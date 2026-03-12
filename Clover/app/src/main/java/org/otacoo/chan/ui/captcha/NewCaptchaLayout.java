@@ -342,9 +342,6 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
             Map<String, String> headers = new HashMap<>();
             headers.put("Referer", "https://boards.4chan.org/" + board + "/thread/" + thread_id);
             
-            // Ensure local storage is cleared for hard reset to avoid stale session state
-            evaluateJavascript("localStorage.clear(); sessionStorage.clear();", null);
-            
             loadUrl(url, headers);
         });
     }
