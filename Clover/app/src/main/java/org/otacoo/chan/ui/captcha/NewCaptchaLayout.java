@@ -282,16 +282,42 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
     }
 
     /**
-     * Public method to display an error message overlay when authentication fails.
-     * Called from ReplyPresenter after a post attempt fails with a captcha error.
+     * Shows a standalone error page after a failed post (e.g. IP ban, abuse block).
      */
     public void showAuthenticationError(String errorMessage) {
-        showOverlay(errorMessage);
+        showUnifiedOverlay(errorMessage, true);
+    }
+
+    private String buildOverlayJson(String message, boolean isError) {
+        try {
+            JSONObject overlay = new JSONObject();
+            overlay.put("message", message);
+            overlay.put("isError", isError);
+            overlay.put("showGetCaptcha", true);
+            overlay.put("showReset", true);
+            JSONObject root = new JSONObject();
+            root.put("overlay", overlay);
+            return root.toString();
+        } catch (Exception e) {
+            return "{\"overlay\":{\"message\":\"An error occurred.\",\"isError\":true}}";
+        }
+    }
+
+    private void showUnifiedOverlay(String message, boolean isError) {
+        showingOverlay = true;
+        showingActiveCaptcha = false;
+        if (isError) post(() -> maybeToast(message, false));
+        String html = loadAssetWithCaptchaData(buildOverlayJson(message, isError));
+        if (html != null) {
+            loadDataWithBaseURL("https://clover.local/", html, "text/html", "UTF-8", null);
+        }
     }
 
     // Performs a full reload of the 4chan captcha endpoint
     private void hardReset(boolean includeCacheBuster, boolean includeTicket) {
         AndroidUtils.runOnUiThread(() -> {
+            // If an error overlay was shown (e.g. IP ban after post), don't navigate away.
+            if (showingOverlay) return;
             showingActiveCaptcha = false;
             showingOverlay = false;
             reportedCompletion = false;
@@ -579,7 +605,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
 
             String err = obj.optString("error", "");
             if (!err.isEmpty() && pcd <= 0 && cd <= 0) {
-                showOverlay(err);
+                showUnifiedOverlay(err, true);
                 return;
             }
 
@@ -595,7 +621,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                 return;
             }
 
-            showOverlay("Tap to request a captcha again.");
+            showUnifiedOverlay("Tap to request a captcha again.", false);
         } catch (Exception e) {
             Logger.e(TAG, "Failed to post: applyPayload failed", e);
         }
@@ -632,8 +658,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
 
                 AndroidUtils.runOnUiThread(() -> {
                     if (!msg.isEmpty() && !"null".equals(msg)) {
-                        maybeToast(msg, false);
-                        showOverlay(msg);
+                        showUnifiedOverlay(msg, true);
                     } else if (full.contains("Post successful")) {
                         // Success - no reload needed here, callback handles it
                         Logger.i(TAG, "Post successful detected on /post page");
@@ -645,8 +670,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                             int end = Math.min(start + 120, full.length());
                             display = full.substring(start, end).replace("\n", " ") + "...";
                         }
-                        maybeToast(display, true);
-                        showOverlay(display);
+                        showUnifiedOverlay(display, true);
                     } else {
                         // Unrecognized state – reload captcha
                         hardReset(false, false);
@@ -692,7 +716,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                 Logger.i(TAG, "extractPayload: errMsg=" + errMsg + ", payloadFound=" + (payload != null));
 
                 if (!errMsg.isEmpty()) {
-                    showOverlay(errMsg);
+                    showUnifiedOverlay(errMsg, true);
                     return;
                 }
 
@@ -717,7 +741,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
             nativePayloadRetryAttempts++;
             new Handler(Looper.getMainLooper()).postDelayed(() -> extractPayloadFromNativePageAndLoadAsset(url), NATIVE_PAYLOAD_RETRY_DELAY_MS);
         } else {
-            showOverlay("Captcha failed to load.");
+            showUnifiedOverlay("Captcha failed to load.", true);
         }
     }
 
@@ -793,7 +817,9 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                     .replace("__C_BTN_BG__", accentHex)
                     .replace("__C_BTN_FG__", accentFg)
                     .replace("__C_BTN_BORDER__", isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)")
-                    .replace("__C_MUTED__", isDark ? "#b0b0b0" : "#555");
+                    .replace("__C_MUTED__", isDark ? "#b0b0b0" : "#555")
+                    .replace("__C_BG_OVERLAY__", tc.bgHex)
+                    .replace("__C_LINK_CLICKABLE__", accentHex);
         } catch (Exception e) {
             Logger.e(TAG, "Load asset failed", e);
             return null;
@@ -803,56 +829,6 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
     private String getContrastColor(int color) {
         double luminance = (0.299 * ((color >> 16) & 0xFF) + 0.587 * ((color >> 8) & 0xFF) + 0.114 * (color & 0xFF)) / 255;
         return luminance > 0.5 ? "#000000" : "#ffffff";
-    }
-
-    // Injects a non-destructive overlay with a message and "Get Captcha" button
-    private void showOverlay(String msg) {
-        showingOverlay = true;
-        showingActiveCaptcha = false;
-        
-        boolean isDark = !ThemeHelper.theme().isLightTheme;
-        ThemeHelper.ColorPair tc = ThemeHelper.getThemeBackgroundForeground(getContext());
-        int baseBg = tc.bgInt;
-        @SuppressLint("DefaultLocale") String bg = String.format("rgba(%d,%d,%d,0.9)",
-                (baseBg >> 16) & 0xFF,
-                (baseBg >> 8) & 0xFF,
-                baseBg & 0xFF);
-        String fg = tc.fgHex;
-        
-        int accentCol = ThemeHelper.theme().accentColor.color;
-        String accentHex = String.format("#%06X", (0xFFFFFF & accentCol));
-        String accentFg = getContrastColor(accentCol);
-        String btnStyle = String.format("background:%s;color:%s;border:1px solid %s;", accentHex, accentFg, isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)");
-        
-        String displayMsg = msg;
-        boolean isError = false;
-        if (msg.toLowerCase().contains("failed to load") || msg.toLowerCase().contains("error") || msg.toLowerCase().contains("fail")) {
-            isError = true;
-            post(() -> maybeToast(msg, false));
-        }
-
-        String overlayHtml;
-        if (isError) {
-            overlayHtml = "<div style=\"color:" + fg + ";font-weight:bold;margin-bottom:15px;font-size:16px;\">Looks like there was an error while posting:</div>" +
-                         "<div style=\"margin-bottom:20px;font-style:italic;font-weight:normal;color:#e53935;\">\"" + msg.replace("'", "\\'") + "\"</div>" +
-                         "<div style=\"color:" + fg + ";font-weight:bold;font-size:16px;\">Try to get a new captcha or reset your session.</div>";
-        } else {
-            overlayHtml = "<div>" + msg.replace("'", "\\'") + "</div>";
-        }
-
-        String js = "(function(){" +
-                "  var ov = document.getElementById('clover-overlay') || document.createElement('div');" +
-                "  ov.id = 'clover-overlay';" +
-                "  ov.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:" + bg + ";color:" + fg + ";display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;text-align:center;padding:20px;box-sizing:border-box;';" +
-                "  ov.innerHTML = '" + overlayHtml + 
-                ("<button id=\"gcb\" style=\"margin-top:25px;padding:12px 24px;border-radius:4px;font-weight:bold;cursor:pointer;" + btnStyle + "\">Get Captcha</button>" +
-                "<div style=\"flex:1;\"></div>" +
-                "<div style=\"margin-top:30px;padding-bottom:20px;font-size:13px;color:__C_LINK__;cursor:pointer;opacity:0.8;text-decoration:underline;\" onclick=\"CaptchaCallback.onResetSession();\">⚠️ Reset Session</div>") + "';" +
-                "  var b = document.getElementById('gcb'); if(b) b.onclick = function(){ CaptchaCallback.onRequestCaptcha(); };" +
-                "  document.body.appendChild(ov);" +
-                "  var l = document.getElementsByTagName('div'); for(var i=0;i<l.length;i++){ if(l[i].innerHTML.indexOf('Reset Session')!=-1) l[i].style.color='" + (isDark ? "#b8b8b8" : "#1565c0") + "'; }" +
-                "})();";
-        evaluateJavascript(js, null);
     }
 
     // Saves the "4chan-tc-ticket" to static state and localStorage
@@ -912,6 +888,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
         globalExpiries.clear();
 
         AndroidUtils.runOnUiThread(() -> {
+            showingOverlay = false;  // allow hardReset to proceed past the guard
             CookieManager cm = CookieManager.getInstance();
             cm.removeAllCookies(null);
             cm.flush();
@@ -956,10 +933,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
         if (err == null && body.contains("<")) err = stripHtml(body);
         if (!TextUtils.isEmpty(err) && err.length() < 500) {
             final String finalErr = err;
-            AndroidUtils.runOnUiThread(() -> {
-                maybeToast(finalErr, false);
-                showOverlay(finalErr);
-            });
+            AndroidUtils.runOnUiThread(() -> showUnifiedOverlay(finalErr, true));
         }
     }
 
@@ -1057,7 +1031,10 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
 
         @JavascriptInterface
         public void onRequestCaptcha() {
-            AndroidUtils.runOnUiThread(() -> NewCaptchaLayout.this.hardReset(false, true));
+            AndroidUtils.runOnUiThread(() -> {
+                showingOverlay = false;  // allow hardReset to proceed past the guard
+                NewCaptchaLayout.this.hardReset(false, true);
+            });
         }
 
         @JavascriptInterface

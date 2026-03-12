@@ -5,12 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="__COLOR_SCHEME__">
     <style>
+        :root {
+            --c-bg:             __C_BG__;
+            --c-fg:             __C_FG__;
+            --c-accent:         __C_ACCENT__;
+            --c-btn-bg:         __C_BTN_BG__;
+            --c-btn-fg:         __C_BTN_FG__;
+            --c-btn-border:     __C_BTN_BORDER__;
+            --c-input-bg:       __C_INPUT_BG__;
+            --c-input-fg:       __C_INPUT_FG__;
+            --c-input-border:   __C_INPUT_BORDER__;
+            --c-muted:          __C_MUTED__;
+            --c-link:           __C_LINK__;
+            --c-bg-overlay:     __C_BG_OVERLAY__;
+            --c-timer-shadow:   __C_TIMER_SHADOW__;
+            --c-link-clickable: __C_LINK_CLICKABLE__;
+        }
         body {
             overflow-y: auto;
             margin: 0;
             padding: 0;
-            background: __C_BG__;
-            color: __C_FG__;
+            background: var(--c-bg);
+            color: var(--c-fg);
             font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
             color-scheme: __COLOR_SCHEME__;
         }
@@ -46,7 +62,7 @@
             font-size: 18px;
             line-height: 1.5;
             font-weight: 600;
-            color: __C_FG__;
+            color: var(--c-fg);
             letter-spacing: 0.02em;
         }
         #t-msg-secondary {
@@ -56,16 +72,16 @@
             color: #e53935;
             font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             letter-spacing: 0.03em;
-            text-shadow: __C_TIMER_SHADOW__;
+            text-shadow: var(--c-timer-shadow);
         }
         #t-msg-btn, 
         .t-msg-btn {
             font-size: 16px;
             padding: 10px 20px;
             margin-top: 18px;
-            background: __C_BTN_BG__;
-            color: __C_BTN_FG__;
-            border: 1px solid __C_BTN_BORDER__;
+            background: var(--c-btn-bg);
+            color: var(--c-btn-fg);
+            border: 1px solid var(--c-btn-border);
             border-radius: 6px;
             font-weight: 500;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
@@ -88,27 +104,27 @@
             width: 100%;
             height: 100%;
             z-index: 9999;
-            background: __C_BG_OVERLAY__;
+            background: var(--c-bg-overlay);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 20px;
             box-sizing: border-box;
-            color: __C_FG__;
+            color: var(--c-fg);
             text-align: center;
         }
         .t-client-overlay .message {
             font-size: 16px;
-            color: __C_FG__;
+            color: var(--c-fg);
             margin-bottom: 20px;
         }
         .t-client-overlay .btn {
             font-size: 16px;
             padding: 10px 20px;
-            background: __C_BTN_BG__;
-            color: __C_BTN_FG__;
-            border: 1px solid __C_BTN_BORDER__;
+            background: var(--c-btn-bg);
+            color: var(--c-btn-fg);
+            border: 1px solid var(--c-btn-border);
             border-radius: 4px;
             font-weight: 600;
         }
@@ -129,21 +145,21 @@
             position: sticky;
             top: 0;
             z-index: 100;
-            background: __C_BG__;
+            background: var(--c-bg);
             padding: 8px 35px 8px 10px;
-            border-bottom: 1px solid __C_INPUT_BORDER__;
+            border-bottom: 1px solid var(--c-input-border);
         }
         #t-expiry-wrap {
             font-size: 12px;
             font-weight: bold;
-            color: __C_MUTED__;
+            color: var(--c-muted);
             white-space: nowrap;
         }
         #t-native-instructions {
             font-size: 14px;
             line-height: 1.4;
             margin-bottom: 12px;
-            color: __C_MUTED__;
+            color: var(--c-muted);
             display: flex;
             gap: 12px;
             align-items: flex-start;
@@ -168,10 +184,10 @@
             flex-shrink: 0;
             width: 92px;
             height: 92px;
-            border: 2px solid __C_INPUT_BORDER__;
+            border: 2px solid var(--c-input-border);
             border-radius: 4px;
             overflow: hidden;
-            background: __C_INPUT_BG__;
+            background: var(--c-input-bg);
             /* transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); */
             position: relative;
         }
@@ -214,10 +230,10 @@
             align-items: center;
             justify-content: center;
             max-width: 340px;
-            border: 3px solid __C_INPUT_BORDER__;
+            border: 3px solid var(--c-input-border);
             border-radius: 4px;
             overflow: hidden;
-            background: __C_INPUT_BG__;
+            background: var(--c-input-bg);
             box-sizing: border-box;
             margin-bottom: 5px;
             height: auto;
@@ -246,9 +262,9 @@
             display: block;
             width: 100%;
             max-width: 240px;
-            background: __C_BTN_BG__;
-            color: __C_BTN_FG__;
-            border: 1px solid __C_BTN_BORDER__;
+            background: var(--c-btn-bg);
+            color: var(--c-btn-fg);
+            border: 1px solid var(--c-btn-border);
             border-radius: 6px;
             font-weight: 500;
         }
@@ -259,7 +275,7 @@
 
         /* Single page captchas */
         .t-single-task {
-            border-bottom: 1px solid __C_INPUT_BORDER__;
+            border-bottom: 1px solid var(--c-input-border);
             padding-bottom: 16px;
             margin-bottom: 16px;
         }
@@ -270,8 +286,8 @@
         /* Slider UI */
         .t-slider-wrap {
             margin-bottom: 16px;
-            background: __C_INPUT_BG__;
-            border: 1px solid __C_INPUT_BORDER__;
+            background: var(--c-input-bg);
+            border: 1px solid var(--c-input-border);
             border-radius: 4px;
             padding: 8px;
             box-sizing: border-box;
@@ -281,8 +297,8 @@
             height: 120px;
             overflow: hidden;
             position: relative;
-            background: __C_BG__;
-            border: 1px solid __C_INPUT_BORDER__;
+            background: var(--c-bg);
+            border: 1px solid var(--c-input-border);
             border-radius: 2px;
             margin-bottom: 12px;
         }
@@ -315,7 +331,7 @@
             width: 100%;
             height: 6px;
             cursor: pointer;
-            background: __C_INPUT_BORDER__;
+            background: var(--c-input-border);
             border-radius: 3px;
         }
         /* Slider Thumb */
@@ -323,20 +339,20 @@
             height: 24px;
             width: 24px;
             border-radius: 50%;
-            background: __C_FG__;
+            background: var(--c-fg);
             cursor: pointer;
             appearance: none;
             margin-top: -9px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            border: 2px solid __C_LINK_CLICKABLE__;
+            border: 2px solid var(--c-link-clickable);
         }
 
         .t-slider-btn {
             font-size: 12px;
             padding: 4px 8px;
-            background: __C_BTN_BG__;
-            color: __C_BTN_FG__;
-            border: 1px solid __C_BTN_BORDER__;
+            background: var(--c-btn-bg);
+            color: var(--c-btn-fg);
+            border: 1px solid var(--c-btn-border);
             border-radius: 4px;
             cursor: pointer;
             font-weight: 600;
@@ -344,6 +360,14 @@
         .t-slider-btn:active {
             opacity: 0.8;
         }
+
+        /* Unified overlay sub-element styles */
+        .ov-title-error { color: #e53935; font-weight: bold; font-size: 17px; margin-bottom: 14px; }
+        .ov-title       { color: var(--c-fg); font-weight: bold; font-size: 17px; margin-bottom: 14px; }
+        .ov-msg-error   { color: #e53935; font-style: italic; word-break: break-word; margin-bottom: 20px; }
+        .ov-msg         { color: var(--c-fg); word-break: break-word; margin-bottom: 20px; }
+        .ov-reset-link  { font-size: 13px; color: var(--c-link); text-decoration: underline;
+                          cursor: pointer; margin-top: 28px; opacity: 0.8; }
     </style>
     <title></title>
 </head>
@@ -649,29 +673,53 @@ var expiryInterval = null;
 // Exact expiry time is 115 secs, I added 1 additional sec for reasons
 var expirySeconds = 116;
 
+function showJsOverlay(message, title, isError, showGetCaptcha, showReset) {
+    var old = document.getElementById('clover-overlay');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+
+    var ov = document.createElement('div');
+    ov.id = 'clover-overlay';
+    ov.className = 't-client-overlay';
+
+    if (title) {
+        var h = document.createElement('div');
+        h.className = isError ? 'ov-title-error' : 'ov-title';
+        h.textContent = title;
+        ov.appendChild(h);
+    }
+
+    var msgEl = document.createElement('div');
+    msgEl.className = isError ? 'ov-msg-error' : 'ov-msg';
+    var escaped = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    msgEl.innerHTML = escaped.replace(/\n/g, '<br>');
+    ov.appendChild(msgEl);
+
+    if (showGetCaptcha) {
+        var btn = document.createElement('button');
+        btn.className = 'btn';
+        btn.textContent = 'Get New Captcha';
+        btn.onclick = function() { requestCaptcha(); };
+        ov.appendChild(btn);
+    }
+
+    if (showReset) {
+        var r = document.createElement('div');
+        r.className = 'ov-reset-link';
+        r.textContent = '\u26a0\ufe0f Reset Session';
+        r.onclick = function() { CaptchaCallback.onResetSession(); };
+        ov.appendChild(r);
+    }
+
+    document.body.appendChild(ov);
+
+    if (expiryInterval) { clearInterval(expiryInterval); expiryInterval = null; }
+    if (cooldownInterval) { clearInterval(cooldownInterval); cooldownInterval = null; }
+}
+
 function showClientOverlay(msg) {
     var tm = document.getElementById('t-msg');
     if (tm) tm.style.display = 'none';
-
-    var old = document.getElementById('t-client-overlay');
-    if (old && old.parentNode) old.parentNode.removeChild(old);
-    var ov = document.createElement('div');
-    ov.id = 't-client-overlay';
-    ov.className = 't-client-overlay';
-    var txt = document.createElement('div');
-    txt.className = 'message';
-    // allow newline in message to create a line break
-    txt.innerHTML = msg.replace(/\n/g, '<br>');
-    ov.appendChild(txt);
-    var btn = document.createElement('button');
-    btn.className = 'btn';
-    btn.textContent = 'Get Captcha';
-    btn.onclick = function() {
-        requestCaptcha();
-        if (ov.parentNode) ov.parentNode.removeChild(ov);
-    };
-    ov.appendChild(btn);
-    document.body.appendChild(ov);
+    showJsOverlay(msg, '', false, true, false);
 }
 
 function startExpiryTimer(ttl) {
@@ -720,6 +768,20 @@ var cooldownInterval = null;
 function buildFromJson(data) {
     if (data.twister) data = data.twister;
     if (data.single_view !== undefined) isSingleView = !!data.single_view;
+
+    // Overlay mode: Java sends { overlay: { message, title, isError, showGetCaptcha, showReset } }
+    if (data.overlay) {
+        var ov = data.overlay;
+        showJsOverlay(
+            ov.message || '',
+            ov.title || (ov.isError ? 'Error while posting' : ''),
+            !!ov.isError,
+            ov.showGetCaptcha !== false,
+            ov.showReset !== false
+        );
+        try { CaptchaCallback.onCaptchaLoaded(); } catch(e) {}
+        return;
+    }
 
     if (data.ticket) {
         window.savedTicket = data.ticket;
@@ -1002,7 +1064,7 @@ function buildSingleViewTasksUI(data) {
         instrDiv.style.fontSize = '14px';
         instrDiv.style.lineHeight = '1.4';
         instrDiv.style.marginBottom = '12px';
-        instrDiv.style.color = '__C_MUTED__';
+        instrDiv.style.color = 'var(--c-muted)';
         instrDiv.style.display = 'flex';
         instrDiv.style.gap = '12px';
         instrDiv.style.alignItems = 'flex-start';
@@ -1030,10 +1092,10 @@ function buildSingleViewTasksUI(data) {
             targetWrap.style.flexShrink = '0';
             targetWrap.style.width = '80px';
             targetWrap.style.height = '80px';
-            targetWrap.style.border = '2px solid __C_INPUT_BORDER__';
+            targetWrap.style.border = '2px solid var(--c-input-border)';
             targetWrap.style.borderRadius = '4px';
             targetWrap.style.overflow = 'hidden';
-            targetWrap.style.background = '__C_INPUT_BG__';
+            targetWrap.style.background = 'var(--c-input-bg)';
 
             var targetImg = document.createElement('img');
             targetImg.style.width = '100%';
