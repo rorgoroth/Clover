@@ -2,11 +2,13 @@ package org.otacoo.chan.ui.captcha;
 
 import static org.otacoo.chan.Chan.inject;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.animation.LinearInterpolator;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -57,6 +59,7 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
 
     private String currentCaptchaId;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private ObjectAnimator refreshSpinner;
 
     public LynxchanBypassLayout(Context context) {
         this(context, null);
@@ -232,7 +235,7 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
                 mainHandler.post(() -> {
                     currentCaptchaId = finalId;
                     captchaImage.setImageBitmap(finalBmp);
-                    setStatus("Solve the bypass captcha to enable posting");
+                    setStatus("Solve the captcha to enable posting");
                     submitButton.setEnabled(true);
                     captchaInput.requestFocus();
                     AndroidUtils.requestKeyboardFocus(captchaInput);
@@ -334,7 +337,7 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
                             + (bypassCookieValue != null ? bypassCookieValue.length() : "null"));
 
                     if (bypassCookieValue != null && bypassCookieValue.length() >= 712) {
-                        setStatus("Please wait, solving proof of work...");
+                        setStatus("Please wait, solving proof of work... This can take a few minutes.");
                         runPowAndValidate(captchaId, bypassCookieValue);
                         return;
                     }
@@ -362,6 +365,7 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
      * the solution to validateBypass.js to activate the bypass.
      */
     private void runPowAndValidate(String captchaId, String bypassCookieValue) {
+        mainHandler.post(this::startRefreshSpin);
         try {
             org.otacoo.chan.core.net.pow.LynxchanProofOfWork pow =
                     new org.otacoo.chan.core.net.pow.LynxchanProofOfWork(bypassCookieValue);
@@ -424,6 +428,25 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
             Logger.e(TAG, "runPowAndValidate error", e);
             showError("POW error: " + e.getMessage());
             mainHandler.post(() -> submitButton.setEnabled(true));
+        } finally {
+            mainHandler.post(this::stopRefreshSpin);
+        }
+    }
+
+    private void startRefreshSpin() {
+        if (refreshSpinner == null) {
+            refreshSpinner = ObjectAnimator.ofFloat(refreshButton, "rotation", 0f, -360f);
+            refreshSpinner.setDuration(800);
+            refreshSpinner.setRepeatCount(ObjectAnimator.INFINITE);
+            refreshSpinner.setInterpolator(new LinearInterpolator());
+        }
+        if (!refreshSpinner.isRunning()) refreshSpinner.start();
+    }
+
+    private void stopRefreshSpin() {
+        if (refreshSpinner != null && refreshSpinner.isRunning()) {
+            refreshSpinner.cancel();
+            refreshButton.setRotation(0f);
         }
     }
 
