@@ -52,7 +52,7 @@ $RECYCLE.BIN/
 
 # Internal testing stuff
 Clover/app/src/dev
-Clover/app/default/
+Clover/app/stable/
 Clover/Clover/build
 package-lock.json
 /Clover/app/dev
