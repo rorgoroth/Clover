@@ -128,11 +128,6 @@ public class MiscSettingsController extends SettingsController {
 
                 ua.add(new StringSettingView(this, ChanSettings.customUserAgent,
                         R.string.setting_group_user_agent_ua, R.string.setting_group_user_agent_ua_desc));
-                if (BuildConfig.FLAVOR.equals("dev")) {
-                    ua.add(new StringSettingView(this, ChanSettings.customCFClearanceCommand,
-                            R.string.setting_group_user_agent_cfcommand, R.string.setting_group_user_agent_cfcommand, false));
-                }
-
                 groups.add(ua);
             }
         }

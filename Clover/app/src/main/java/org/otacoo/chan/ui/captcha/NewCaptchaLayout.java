@@ -507,14 +507,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
             Request request = new Request.Builder()
                     .url(url)
                     .header("User-Agent", userAgent != null ? userAgent : cachedUserAgent)
-                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
-                    .header("Accept-Language", "en-US,en;q=0.9")
                     .header("Referer", "https://boards.4chan.org/" + board + "/thread/" + thread_id)
-                    .header("Upgrade-Insecure-Requests", "1")
-                    .header("Sec-Fetch-Dest", "document")
-                    .header("Sec-Fetch-Mode", "navigate")
-                    .header("Sec-Fetch-Site", "same-site")
-                    .header("Sec-Fetch-User", "?1")
                     .header("Cookie", cookies != null ? cookies : "")
                     .build();
 

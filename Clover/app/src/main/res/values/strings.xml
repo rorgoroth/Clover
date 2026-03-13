@@ -602,8 +602,6 @@ Crash reports do not collect any personally identifiable information."
     <string name="setting_group_user_agent">Custom User-Agent</string>
     <string name="setting_group_user_agent_ua">Set custom User-Agent</string>
     <string name="setting_group_user_agent_ua_desc">Empty for system, requires restart</string>
-    <string name="setting_group_user_agent_cfcommand">[DEBUG] Shell command to set cf_clearance</string>
-
     <!-- Media -->
     <string name="settings_screen_media">Media</string>
 
