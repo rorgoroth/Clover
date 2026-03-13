@@ -367,6 +367,7 @@ public class ThreadPresenter implements
     }
 
     public void onPostSeen(int postNo) {
+        if (loadable == null) return;
         if (loadable.isThreadMode() && !ignoreLastViewedUpdates) {
             loadable.setLastViewed(Math.max(loadable.lastViewed, postNo));
             

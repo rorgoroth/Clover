@@ -121,7 +121,9 @@ public class ThreadSlideController extends Controller implements DoubleNavigatio
             } else {
                 slidingPaneLayout.closePane();
             }
+            if (!(navigationController instanceof ToolbarNavigationController)) return;
             Toolbar toolbar = ((ToolbarNavigationController) navigationController).toolbar;
+            if (toolbar == null) return;
             toolbar.processScrollCollapse(Toolbar.TOOLBAR_COLLAPSE_SHOW, true);
 
             if (slidingPaneLayout.getWidth() == 0) {
@@ -280,7 +282,9 @@ public class ThreadSlideController extends Controller implements DoubleNavigatio
     }
 
     private void setParentNavigationItem(boolean left) {
+        if (!(navigationController instanceof ToolbarNavigationController)) return;
         Toolbar toolbar = ((ToolbarNavigationController) navigationController).toolbar;
+        if (toolbar == null) return;
 
         NavigationItem item = null;
         if (left) {
