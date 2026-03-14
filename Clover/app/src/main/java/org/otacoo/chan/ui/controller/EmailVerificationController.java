@@ -19,7 +19,6 @@ package org.otacoo.chan.ui.controller;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Build;
 import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -41,7 +40,7 @@ public class EmailVerificationController extends Controller {
     private static final String TAG = "EmailVerificationController";
 
     private AuthWebView webView;
-    private String initialUrl;
+    private final String initialUrl;
     private String title = "Email Verification";
     private String[] requiredCookies;
     private boolean isFinished = false;
@@ -112,12 +111,9 @@ public class EmailVerificationController extends Controller {
         // AuthWebView handles JavaScript, DOM storage, and basic cookie settings.
         webView = new AuthWebView(context);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            cookieManager.setAcceptThirdPartyCookies(webView, true);
-        }
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
 
         WebSettings settings = webView.getSettings();
-        settings.setDatabaseEnabled(true);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
 
@@ -126,9 +122,7 @@ public class EmailVerificationController extends Controller {
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    CookieManager.getInstance().flush();
-                }
+                CookieManager.getInstance().flush();
 
                 String cookies = CookieManager.getInstance().getCookie(url);
                 Logger.d(TAG, "onPageFinished url=" + url + " cookies=" + cookies);
@@ -153,7 +147,7 @@ public class EmailVerificationController extends Controller {
 
         // Add WebView into the container that was set as view in onCreate
         if (view instanceof FrameLayout) {
-            ((FrameLayout) view).addView(webView, new FrameLayout.LayoutParams(
+            view.addView(webView, new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT));
         }
@@ -188,10 +182,8 @@ public class EmailVerificationController extends Controller {
         if (isFinished) return;
         isFinished = true;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            CookieManager.getInstance().flush();
-        }
-        
+        CookieManager.getInstance().flush();
+
         // Only sync WebView cookies into the java.net/OkHttp jar for 8chan.
         boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st") || initialUrl.contains("8chan.cc"));
         if (is8chan) {
@@ -214,8 +206,7 @@ public class EmailVerificationController extends Controller {
 
         // If this was a 4chan verification session, persist any 4chan_pass cookie that was
         // set by the site so it survives future CookieManager clears.
-        if (site instanceof Chan4) {
-            Chan4 chan4 = (Chan4) site;
+        if (site instanceof Chan4 chan4) {
             String sysCookies = CookieManager.getInstance().getCookie("https://sys.4chan.org");
             if (sysCookies != null) {
                 for (String part : sysCookies.split(";\\s*")) {
@@ -231,9 +222,7 @@ public class EmailVerificationController extends Controller {
             }
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            CookieManager.getInstance().flush();
-        }
+        CookieManager.getInstance().flush();
 
         if (webView != null) {
             webView.destroy();
