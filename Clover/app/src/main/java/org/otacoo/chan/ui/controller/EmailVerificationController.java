@@ -19,24 +19,32 @@ package org.otacoo.chan.ui.controller;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.os.Build;
 import android.webkit.CookieManager;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.FrameLayout;
 import android.widget.Toast;
 
 import org.otacoo.chan.controller.Controller;
 import org.otacoo.chan.core.di.NetModule;
+import org.otacoo.chan.core.site.Site;
 import org.otacoo.chan.ui.helper.RefreshUIMessage;
 import org.otacoo.chan.ui.view.AuthWebView;
+import org.otacoo.chan.utils.Logger;
 
 import de.greenrobot.event.EventBus;
 
 public class EmailVerificationController extends Controller {
+    private static final String TAG = "EmailVerificationController";
+
     private AuthWebView webView;
     private String initialUrl;
     private String title = "Email Verification";
     private String[] requiredCookies;
     private boolean isFinished = false;
+    private Site site;
 
     public EmailVerificationController(Context context) {
         this(context, "https://sys.4chan.org/signin");
@@ -58,12 +66,24 @@ public class EmailVerificationController extends Controller {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
+    public void setSite(Site s) {
+        this.site = s;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
 
         navigation.title = title;
         navigation.swipeable = false;
+
+        // Set view synchronously so pushController doesn't crash with "Controller has no view".
+        // The WebView will be added into this container after async cookie clearing.
+        FrameLayout container = new FrameLayout(context);
+        container.setLayoutParams(new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT));
+        view = container;
 
         AuthWebView.runOnWebViewThread(this::setupWebView);
     }
@@ -72,19 +92,54 @@ public class EmailVerificationController extends Controller {
     private void setupWebView() {
         if (!alive) return;
 
+        // KurobaEx pattern: clear all stale cookies first, then create the WebView.
+        // The signin page sets its own cookies during Cloudflare/Turnstile/antibot flow.
+        // Stale cookies from previous browsing can conflict with form validation.
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.removeAllCookies(success -> {
+            Logger.d(TAG, "removeAllCookies result=" + success);
+            AuthWebView.runOnWebViewThread(this::createAndLoadWebView);
+        });
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private void createAndLoadWebView() {
+        if (!alive) return;
+
+        CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+
+        // AuthWebView handles JavaScript, DOM storage, and basic cookie settings.
         webView = new AuthWebView(context);
-        
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cookieManager.setAcceptThirdPartyCookies(webView, true);
+        }
+
+        // Additional settings matching KurobaEx's OpenUrlInWebViewController
+        WebSettings settings = webView.getSettings();
+        settings.setDatabaseEnabled(true);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
+
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                
-                String pageTitle = view.getTitle();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    CookieManager.getInstance().flush();
+                }
+
+                String cookies = CookieManager.getInstance().getCookie(url);
+                Logger.d(TAG, "onPageFinished url=" + url + " cookies=" + cookies);
+
                 boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st") || initialUrl.contains("8chan.cc"));
 
                 if (is8chan) {
                     checkCookies();
-                } else if (url.contains("sys.4chan.org/signin") && url.contains("action=verify")) {
+                } else if (url != null && url.contains("sys.4chan.org/signin") && url.contains("action=verify")) {
+                    String pageTitle = view.getTitle();
                     if (pageTitle != null && (pageTitle.contains("Verified") || pageTitle.contains("Success"))) {
                         completeVerification();
                     }
@@ -92,10 +147,18 @@ public class EmailVerificationController extends Controller {
             }
         });
 
-        // Load the verification page
-        webView.loadUrl(initialUrl);
+        // Re-inject site cookies after clearing (e.g. pass cookies, Cloudflare cookies)
+        if (site != null) {
+            site.requestModifier().modifyWebView(webView);
+        }
 
-        view = webView;
+        // Add WebView into the container that was set as view in onCreate
+        if (view instanceof FrameLayout) {
+            ((FrameLayout) view).addView(webView, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT));
+        }
+        webView.loadUrl(initialUrl);
 
         if (requiredCookies != null && requiredCookies.length > 0) {
             Toast.makeText(context, "Please solve the verification challenge to continue.", Toast.LENGTH_LONG).show();
@@ -126,9 +189,15 @@ public class EmailVerificationController extends Controller {
         if (isFinished) return;
         isFinished = true;
 
-        CookieManager.getInstance().flush();
-        // Sync WebView cookies into the java.net jar so OkHttp and isLoggedIn() see them.
-        NetModule.syncCookiesToJar(initialUrl);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            CookieManager.getInstance().flush();
+        }
+        
+        // Only sync WebView cookies into the java.net/OkHttp jar for 8chan.
+        boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st") || initialUrl.contains("8chan.cc"));
+        if (is8chan) {
+            NetModule.syncCookiesToJar(initialUrl);
+        }
 
         Toast.makeText(context, "Verification successful!", Toast.LENGTH_SHORT).show();
         EventBus.getDefault().post(new RefreshUIMessage("Verification successful"));
@@ -143,6 +212,11 @@ public class EmailVerificationController extends Controller {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            CookieManager.getInstance().flush();
+        }
+
         if (webView != null) {
             webView.destroy();
         }
