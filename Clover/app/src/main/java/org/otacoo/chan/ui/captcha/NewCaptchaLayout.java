@@ -47,6 +47,7 @@ import org.otacoo.chan.R;
 import org.otacoo.chan.core.model.orm.Loadable;
 import org.otacoo.chan.core.settings.ChanSettings;
 import org.otacoo.chan.core.site.SiteAuthentication;
+import org.otacoo.chan.core.site.sites.chan4.Chan4;
 import org.otacoo.chan.ui.theme.ThemeHelper;
 import org.otacoo.chan.utils.AndroidUtils;
 import org.otacoo.chan.utils.Logger;
@@ -943,6 +944,9 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
             cm.setCookie("https://sys.4chan.org", header);
         }
         cm.flush();
+        if (site instanceof Chan4) {
+            ((Chan4) site).getCookieStore().onServerCookies(r.headers("set-cookie"));
+        }
     }
 
     // Convenience wrappers for showing a long toast on the UI thread

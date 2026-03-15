@@ -20,7 +20,6 @@ package org.otacoo.chan.core.site.sites.chan4;
 
 import static org.otacoo.chan.Chan.injector;
 
-import android.webkit.CookieManager;
 import android.webkit.WebView;
 
 import androidx.annotation.NonNull;
@@ -61,11 +60,8 @@ import org.otacoo.chan.utils.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
@@ -329,37 +325,10 @@ public class Chan4 extends SiteBase {
     private final SiteRequestModifier siteRequestModifier = new SiteRequestModifier() {
         @Override
         public void modifyHttpCall(HttpCall httpCall, Request.Builder requestBuilder) {
-            Set<String> cookieParts = new LinkedHashSet<>();
-
-            // Reuse WebView cookies (cf_clearance and related anti-bot cookies)
-            // for post/delete requests that go through OkHttp.
-            HttpUrl requestUrl = requestBuilder.build().url();
-            CookieManager cookieManager = CookieManager.getInstance();
-            String requestCookies = cookieManager.getCookie(requestUrl.toString());
-            if (requestCookies != null && !requestCookies.isEmpty()) {
-                cookieParts.addAll(Arrays.asList(requestCookies.split(";\\s*")));
-            }
-
-            // 4chan may set cookies on different related hosts.
-            String[] fallbackCookieUrls = {
-                    "https://sys.4chan.org",
-                    "https://boards.4chan.org",
-                    "https://www.4chan.org"
-            };
-            for (String cookieUrl : fallbackCookieUrls) {
-                String cookies = cookieManager.getCookie(cookieUrl);
-                if (cookies != null && !cookies.isEmpty()) {
-                    cookieParts.addAll(Arrays.asList(cookies.split(";\\s*")));
-                }
-            }
-
-            if (actions.isLoggedIn()) {
-                cookieParts.add("pass_id=" + passToken.get());
-                cookieParts.add("pass_enabled=1");
-            }
-
-            if (!cookieParts.isEmpty()) {
-                requestBuilder.header("Cookie", android.text.TextUtils.join("; ", cookieParts));
+            String cookieHeader = cookieStore.getCookieHeader(
+                    requestBuilder.build().url().toString());
+            if (cookieHeader != null) {
+                requestBuilder.header("Cookie", cookieHeader);
             }
         }
 
@@ -369,53 +338,7 @@ public class Chan4 extends SiteBase {
 
         @Override
         public void modifyWebView(WebView webView) {
-            final HttpUrl sys = new HttpUrl.Builder()
-                    .scheme("https")
-                    .host("sys.4chan.org")
-                    .build();
-            final HttpUrl boards = new HttpUrl.Builder()
-                    .scheme("https")
-                    .host("boards.4chan.org")
-                    .build();
-            CookieManager cookieManager = CookieManager.getInstance();
-            if (actions.isLoggedIn()) {
-                String[] passCookies = {
-                        "pass_enabled=1;",
-                        "pass_id=" + passToken.get() + ";"
-                };
-                String domain = sys.scheme() + "://" + sys.host() + "/";
-                String boardsDomain = boards.scheme() + "://" + boards.host() + "/";
-                for (String cookie : passCookies) {
-                    cookieManager.setCookie(domain, cookie);
-                    cookieManager.setCookie(boardsDomain, cookie);
-                }
-            } else {
-                // Only expire pass cookies if the WebView doesn't already have a valid 4chan_pass.
-                String sysC = cookieManager.getCookie("https://sys.4chan.org");
-                boolean hasValidPassInWebView = sysC != null && sysC.contains("4chan_pass=");
-                if (!hasValidPassInWebView) {
-                    String expiredPassId = "pass_id=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-                    String expiredPassEnabled = "pass_enabled=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-                    String domain = sys.scheme() + "://" + sys.host() + "/";
-                    String boardsDomain = boards.scheme() + "://" + boards.host() + "/";
-                    cookieManager.setCookie(domain, expiredPassId);
-                    cookieManager.setCookie(domain, expiredPassEnabled);
-                    cookieManager.setCookie(boardsDomain, expiredPassId);
-                    cookieManager.setCookie(boardsDomain, expiredPassEnabled);
-                }
-            }
-
-            // Inject the persisted 4chan_pass cookie so it survives CookieManager clears and app restarts.
-            String savedChanPass = passWebCookie.get();
-            if (!savedChanPass.isEmpty()) {
-                String chanPassCookieStr = "4chan_pass=" + savedChanPass + ";";
-                cookieManager.setCookie(sys.scheme() + "://" + sys.host() + "/", chanPassCookieStr);
-                cookieManager.setCookie(boards.scheme() + "://" + boards.host() + "/", chanPassCookieStr);
-                cookieManager.setCookie("https://sys.4channel.org/", chanPassCookieStr);
-                cookieManager.setCookie("https://boards.4channel.org/", chanPassCookieStr);
-            }
-
-            cookieManager.flush();
+            cookieStore.syncToWebView(webView);
         }
     };
 
@@ -523,7 +446,7 @@ public class Chan4 extends SiteBase {
                 public void onHttpSuccess(Chan4PassHttpCall httpCall) {
                     LoginResponse loginResponse = httpCall.loginResponse;
                     if (loginResponse.success) {
-                        passToken.set(loginResponse.token);
+                        cookieStore.setPassId(loginResponse.token);
                     }
                     loginListener.onLoginComplete(httpCall, loginResponse);
                 }
@@ -535,11 +458,13 @@ public class Chan4 extends SiteBase {
         }
         @Override
         public void logout() {
-            passToken.set("");
+            cookieStore.setPassId("");
         }
         @Override
         public boolean isLoggedIn() {
-            return !passToken.get().isEmpty();
+            // Reflects the paid 4chan Pass (pass_id) only.
+            // 4chan_pass (email verification) is independent and does not count as "logged in".
+            return !cookieStore.getPassId().get().isEmpty();
         }
         @Override
         public LoginRequest getLoginDetails() {
@@ -550,8 +475,7 @@ public class Chan4 extends SiteBase {
     // Legacy settings that were global before
     private final StringSetting passUser;
     private final StringSetting passPass;
-    private final StringSetting passToken;
-    private final StringSetting passWebCookie;
+    private final Chan4CookieStore cookieStore;
     private final BooleanSetting showCooldownToast;
     private final BooleanSetting singleViewCaptchas;
 
@@ -560,10 +484,7 @@ public class Chan4 extends SiteBase {
         SettingProvider p = new SharedPreferencesSettingProvider(AndroidUtils.getPreferences());
         passUser = new StringSetting(p, "preference_pass_token", "");
         passPass = new StringSetting(p, "preference_pass_pin", "");
-        // token was renamed, before it meant the username, now it means the token returned
-        // from the server that the cookie is set to.
-        passToken = new StringSetting(p, "preference_pass_id", "");
-        passWebCookie = new StringSetting(p, "preference_4chan_pass_cookie", "");
+        cookieStore = new Chan4CookieStore();
         showCooldownToast = new BooleanSetting(p, "preference_4chan_cooldown_toast", false);
         singleViewCaptchas = new BooleanSetting(p, "preference_4chan_single_view_captchas", false);
     }
@@ -571,6 +492,7 @@ public class Chan4 extends SiteBase {
     @Override
     public void initializeSettings() {
         super.initializeSettings();
+        cookieStore.init();
     }
 
     @Override
@@ -589,29 +511,8 @@ public class Chan4 extends SiteBase {
         return singleViewCaptchas;
     }
 
-    public StringSetting getPassWebCookie() {
-        return passWebCookie;
-    }
-
-    public void syncPassCookieToCookieManager() {
-        String value = passWebCookie.get();
-        String[] domains = {
-                "https://sys.4chan.org/", "https://boards.4chan.org/",
-                "https://sys.4channel.org/", "https://boards.4channel.org/"
-        };
-        CookieManager cm = CookieManager.getInstance();
-        if (value.isEmpty()) {
-            String expired = "4chan_pass=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
-            for (String domain : domains) {
-                cm.setCookie(domain, expired);
-            }
-        } else {
-            String cookieStr = "4chan_pass=" + value + ";";
-            for (String domain : domains) {
-                cm.setCookie(domain, cookieStr);
-            }
-        }
-        cm.flush();
+    public Chan4CookieStore getCookieStore() {
+        return cookieStore;
     }
 
     @Override

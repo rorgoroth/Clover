@@ -18,7 +18,6 @@
 package org.otacoo.chan.core.site.sites.chan4;
 
 import android.text.TextUtils;
-import android.webkit.CookieManager;
 
 import androidx.annotation.Nullable;
 
@@ -26,8 +25,6 @@ import org.otacoo.chan.core.site.Site;
 import org.otacoo.chan.core.site.common.CommonReplyHttpCall;
 import org.otacoo.chan.core.site.http.ProgressRequestBody;
 import org.otacoo.chan.core.site.http.Reply;
-
-import java.util.Locale;
 
 import okhttp3.Call;
 import okhttp3.Headers;
@@ -123,16 +120,6 @@ public class Chan4ReplyCall extends CommonReplyHttpCall {
     @Override
     public void onResponse(Call call, Response response) {
         super.onResponse(call, response);
-        CookieManager cookieManager = CookieManager.getInstance();
-        Headers headers = response.headers();
-        for (int i = 0; i < headers.size(); i++) {
-            if (headers.name(i).toLowerCase(Locale.ENGLISH).equals("set-cookie")) {
-                String val = headers.value(i).split(";")[0];
-                // Forward reply-response cookies to both sys and boards domains
-                cookieManager.setCookie("https://sys.4chan.org", val);
-                cookieManager.setCookie("https://boards.4chan.org", val);
-            }
-        }
-        cookieManager.flush();
+        ((Chan4) site).getCookieStore().onServerCookies(response.headers("set-cookie"));
     }
 }
