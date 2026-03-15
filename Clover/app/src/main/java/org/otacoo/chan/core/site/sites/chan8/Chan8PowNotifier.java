@@ -1,4 +1,4 @@
-package org.otacoo.chan.core.net;
+package org.otacoo.chan.core.site.sites.chan8;
 
 import android.view.View;
 

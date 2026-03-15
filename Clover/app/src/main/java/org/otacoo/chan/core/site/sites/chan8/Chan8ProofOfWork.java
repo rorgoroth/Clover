@@ -1,4 +1,4 @@
-package org.otacoo.chan.core.net.pow;
+package org.otacoo.chan.core.site.sites.chan8;
 
 import java.security.MessageDigest;
 import java.util.concurrent.Executors;

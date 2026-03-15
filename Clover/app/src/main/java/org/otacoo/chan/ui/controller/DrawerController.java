@@ -137,7 +137,7 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
             footer.findViewById(R.id.image_history).setOnClickListener(v -> openHistory());
         }
 
-        org.otacoo.chan.core.net.Chan8PowNotifier.setRootView(drawerLayout);
+        org.otacoo.chan.core.site.sites.chan8.Chan8PowNotifier.setRootView(drawerLayout);
 
         updateBadge();
     }
@@ -145,7 +145,7 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
     @Override
     public void onDestroy() {
         super.onDestroy();
-        org.otacoo.chan.core.net.Chan8PowNotifier.setRootView(null);
+        org.otacoo.chan.core.site.sites.chan8.Chan8PowNotifier.setRootView(null);
         EventBus.getDefault().unregister(this);
     }
 

@@ -65,7 +65,6 @@ public class EmailVerificationController extends Controller {
         this.requiredCookies = cookies;
     }
 
-    @SuppressLint("SetJavaScriptEnabled")
     public void setSite(Site s) {
         this.site = s;
     }
@@ -164,13 +163,23 @@ public class EmailVerificationController extends Controller {
         AuthWebView.runOnWebViewThread(() -> {
             String url = webView.getUrl();
             if (url == null) url = initialUrl;
-            
-            String cookies = CookieManager.getInstance().getCookie(url);
-            boolean hasToken = cookies != null && cookies.contains("POW_TOKEN");
-            // Match any TOS cookie (e.g. TOS20250413)
-            boolean hasTOS = cookies != null && java.util.regex.Pattern.compile("\\bTOS\\w*=").matcher(cookies).find();
 
-            if (hasToken && hasTOS) {
+            String cookies = CookieManager.getInstance().getCookie(url);
+            boolean allPresent = requiredCookies != null && cookies != null;
+            if (allPresent) {
+                for (String name : requiredCookies) {
+                    // Use prefix-match so e.g. "TOS" also matches "TOS20250413=..."
+                    boolean found = java.util.regex.Pattern
+                            .compile("\\b" + java.util.regex.Pattern.quote(name) + "\\w*=")
+                            .matcher(cookies).find();
+                    if (!found) {
+                        allPresent = false;
+                        break;
+                    }
+                }
+            }
+
+            if (allPresent) {
                 completeVerification();
             } else {
                 webView.postDelayed(this::checkCookies, 1000);
@@ -214,7 +223,7 @@ public class EmailVerificationController extends Controller {
                     if (trimmed.startsWith("4chan_pass=")) {
                         String value = trimmed.substring("4chan_pass=".length());
                         if (!value.isEmpty()) {
-                            chan4.getPassWebCookie().set(value);
+                            chan4.getCookieStore().setChanPass(value);
                         }
                         break;
                     }

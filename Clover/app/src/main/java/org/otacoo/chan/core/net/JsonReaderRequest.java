@@ -65,8 +65,8 @@ public abstract class JsonReaderRequest<T> implements Callback {
             }
             if (respCode >= 500) {
                 String url = call.request().url().toString();
-                if (org.otacoo.chan.core.net.Chan8RateLimit.is8chan(url)) {
-                    org.otacoo.chan.core.net.Chan8RateLimit.notifyDomainUnreachable(
+                if (org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.is8chan(url)) {
+                    org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.notifyDomainUnreachable(
                             call.request().url().host());
                 }
             }

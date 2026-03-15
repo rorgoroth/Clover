@@ -19,8 +19,8 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
 
     public HttpUrl root() {
         String url = root.url().toString();
-        if (org.otacoo.chan.core.net.Chan8RateLimit.is8chan(url)) {
-            String rewritten = org.otacoo.chan.core.net.Chan8RateLimit.rewriteToActiveDomain(url);
+        if (org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.is8chan(url)) {
+            String rewritten = org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.rewriteToActiveDomain(url);
             HttpUrl parsed = HttpUrl.parse(rewritten);
             if (parsed != null) return parsed;
         }

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.otacoo.chan.core.net;
+package org.otacoo.chan.core.site.sites.chan8;
 
 import java.util.concurrent.Semaphore;
 

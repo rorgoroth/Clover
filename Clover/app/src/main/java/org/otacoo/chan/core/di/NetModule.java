@@ -20,6 +20,7 @@ import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.dnsoverhttps.DnsOverHttps;
 import org.otacoo.chan.core.net.AppCookieJar;
+import org.otacoo.chan.core.site.sites.chan8.Chan8PowInterceptor;
 
 public class NetModule {
     private static final long FILE_CACHE_DISK_SIZE = 50 * 1024 * 1024;

@@ -24,7 +24,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.otacoo.chan.core.model.orm.Board;
 import org.otacoo.chan.core.model.orm.Loadable;
-import org.otacoo.chan.core.net.Chan8RateLimit;
+
 import org.otacoo.chan.core.site.Boards;
 import org.otacoo.chan.core.site.Site;
 import org.otacoo.chan.core.site.SiteActions;
@@ -83,7 +83,7 @@ public class Chan8 extends CommonSite {
     }
 
     /**
-     * Reads the POW session cookies that {@link org.otacoo.chan.core.di.Chan8PowInterceptor}
+     * Reads the POW session cookies that {@link Chan8PowInterceptor}
      * If the token has expired the interceptor will clear it and re-solve automatically.
      */
     private void restorePowCookies() {
@@ -311,9 +311,9 @@ public class Chan8 extends CommonSite {
                         // Schedule a single retry for when the user completes verification,
                         // then prompt them to do so.
                         Logger.w(TAG, "boards: scheduling retry on next verification");
-                        org.otacoo.chan.core.net.Chan8PowNotifier.scheduleRetryOnNextSolve(
+                        Chan8PowNotifier.scheduleRetryOnNextSolve(
                                 () -> boardsWithRetry(boardsListener, true));
-                        org.otacoo.chan.core.net.Chan8PowNotifier.onPowFailed();
+                        Chan8PowNotifier.onPowFailed();
                     } else {
                         Logger.e(TAG, "boards: fetch failed", e);
                         boardsListener.onBoardsFailed(
