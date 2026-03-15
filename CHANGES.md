@@ -1,3 +1,21 @@
+## 2026-03-15 – v3.3.8
+
+- Clover now supports adaptive Android icons
+- Fix search having a big gap when using the bottom toolbar
+- Tapping a post number to reply will now scroll the thread to that reply
+- **Cookies of hell:**
+  - After a deep dive and thanks to cookie anon (@ling-mjg) for pointing this out (issue #11), Clover should now correctly use the 4chan_pass cookie (email verification) when requesting captchas
+  - Created a unified 4chan cookie storage and simplified how cookies are synced between the various systems
+  - Added more robust deleting of cookies for the Cookie Manager (except for *cf_clearance* cookie that can't be deleted unless *Clear all* is used)
+- **Email verification:**
+  - Improved how the webview is created and which cookies are deleted, now only clears Cloudflare cookies for a fresh start
+  - Add buttons to refresh the page and browse to any URL just in case
+  - Improve the dialog for setting the cookie
+- **4chan captcha:**
+  - Cloudflare turnstile will now use its native dark theme, we no longer inject anything
+  - Thanks to the new unified cookie storage users should no longer run into "You seem to have mistyped the captcha" errors
+
+
 ## 2026-03-14 – v3.3.7
 
 - Fix an issue where the 4chan Email verification couldn't set any cookies
