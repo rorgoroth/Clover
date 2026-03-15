@@ -21,10 +21,6 @@ There has been an extensive backend overhaul and modernization of the app while 
 - New dialog for adding filters
 - New options (top/bottom arrows, randomize filenames, bottom toolbar & more)
 
-**TODO:**
-- Replace Jsoup with a more lightweight HTML parser 
-- Improve performance of the app
-
 ## About Clover
 
 Clover is a fast Android app for browsing imageboards, such as 4chan and 8chan. It adds inline replying, thread watching, notifications, themes, pass support, filters and a whole lot more. Clover is licensed under the GPL and will always be free.
