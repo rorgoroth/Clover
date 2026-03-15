@@ -35,7 +35,8 @@ public class NetModule {
         return sharedCookieManager;
     }
 
-    /** Sync WebView cookies for {@code url} into the java.net CookieStore (including HttpOnly). */
+    // Syncs WebView cookies for {url} into the java.net CookieStore (including HttpOnly).
+    // Attention: THIS IS FOR 8chan / Lynxchan ONLY. 4chan.org cookies are owned by Chan4CookieStore.java
     public static void syncCookiesToJar(String url) {
         if (sharedCookieManager == null) return;
         // Ensure CookieManager calls happen on WebView thread (main thread).

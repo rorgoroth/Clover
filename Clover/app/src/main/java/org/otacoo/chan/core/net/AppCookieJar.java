@@ -48,6 +48,7 @@ public class AppCookieJar implements CookieJar {
         try {
             java.net.URI uri = url.uri();
             List<Cookie> result = cookiesFromStore(uri, url);
+            // 4chan.org cookies are owned entirely by Chan4CookieStore; never sync them here.
             if (result.isEmpty() && url.host().contains("8chan")) {
                 org.otacoo.chan.core.di.NetModule.syncCookiesToJar(url.toString());
                 result = cookiesFromStore(uri, url);
