@@ -217,10 +217,10 @@ Re-enable this permission in the app settings if you permanently disabled it."</
     <string name="setup_site_4chan_enter_token_description">Paste verification link or token</string>
 
     <!-- 4chan_pass cookie option -->
-    <string name="setup_site_4chan_pass_cookie_name">4chan_pass cookie</string>
+    <string name="setup_site_4chan_pass_cookie_name">Verification cookie</string>
     <string name="setup_site_4chan_pass_cookie_set">Cookie is set</string>
     <string name="setup_site_4chan_pass_cookie_not_set">Not set</string>
-    <string name="setup_site_4chan_pass_cookie_dialog_title">4chan_pass cookie</string>
+    <string name="setup_site_4chan_pass_cookie_dialog_title">Verification cookie</string>
     <string name="setup_site_4chan_pass_cookie_dialog_message">The value of the 4chan_pass cookie used for authentication. Changes are applied to the cookie store immediately.</string>
     <string name="setup_site_4chan_pass_cookie_hint">Cookie value…</string>
     <string name="setup_site_4chan_pass_cookie_saved">4chan_pass cookie saved</string>
