@@ -216,18 +216,14 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
 
     private void openPinnedSearch(Board board, Loadable loadable) {
         Controller top = getTop();
-        if (top instanceof DoubleNavigationController) {
-            DoubleNavigationController dnc = (DoubleNavigationController) top;
-            if (dnc.getLeftController() instanceof BrowseController) {
-                BrowseController bc = (BrowseController) dnc.getLeftController();
+        if (top instanceof DoubleNavigationController dnc) {
+            if (dnc.getLeftController() instanceof BrowseController bc) {
                 bc.setBoard(board);
                 bc.loadBoard(loadable);
                 dnc.switchToController(true);
             }
-        } else if (top instanceof ToolbarNavigationController) {
-            ToolbarNavigationController tnc = (ToolbarNavigationController) top;
-            if (tnc.getTop() instanceof BrowseController) {
-                BrowseController bc = (BrowseController) tnc.getTop();
+        } else if (top instanceof ToolbarNavigationController tnc) {
+            if (tnc.getTop() instanceof BrowseController bc) {
                 bc.setBoard(board);
                 bc.loadBoard(loadable);
             } else {
@@ -496,8 +492,7 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
         ToolbarNavigationController nav = getMainToolbarNavigationController();
         if (nav.getTop() instanceof ThreadController) {
             return (ThreadController) nav.getTop();
-        } else if (nav.getTop() instanceof ThreadSlideController) {
-            ThreadSlideController slideNav = (ThreadSlideController) nav.getTop();
+        } else if (nav.getTop() instanceof ThreadSlideController slideNav) {
             if (slideNav.leftController instanceof ThreadController) {
                 return (ThreadController) slideNav.leftController;
             }
@@ -512,19 +507,17 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
         Controller top = getTop();
         if (top instanceof StyledToolbarNavigationController) {
             navigationController = (StyledToolbarNavigationController) top;
-        } else if (top instanceof SplitNavigationController) {
-            SplitNavigationController splitNav = (SplitNavigationController) top;
+        } else if (top instanceof SplitNavigationController splitNav) {
             if (splitNav.getLeftController() instanceof StyledToolbarNavigationController) {
                 navigationController = (StyledToolbarNavigationController) splitNav.getLeftController();
             }
-        } else if (top instanceof ThreadSlideController) {
-            ThreadSlideController slideNav = (ThreadSlideController) top;
+        } else if (top instanceof ThreadSlideController slideNav) {
             navigationController = (StyledToolbarNavigationController) slideNav.leftController;
         }
 
         if (navigationController == null) {
             throw new IllegalStateException("The child controller of a DrawerController must either be StyledToolbarNavigationController" +
-                    "or an DoubleNavigationController that has a ToolbarNavigationController.");
+                    " or an DoubleNavigationController that has a ToolbarNavigationController.");
         }
 
         return navigationController;
