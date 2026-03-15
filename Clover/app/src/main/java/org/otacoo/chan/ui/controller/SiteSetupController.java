@@ -23,6 +23,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.text.InputType;
+import android.view.Gravity;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -95,15 +96,18 @@ public class SiteSetupController extends SettingsController implements SiteSetup
         presenter.show();
         // Re-read the live 4chan_pass value from CookieManager every time this screen is shown.
         // This picks up cookies set by "Enter verification token", the Cookie Manager, or any
-        // other source — keeping the setting and the UI description in sync with the truth.
+        // other source and keeps the setting and the UI description in sync with THE truth.
         if (site != null && "4chan".equals(site.name()) && passCookieLink != null) {
             Chan4 chan4 = (Chan4) site;
             android.webkit.CookieManager cm = android.webkit.CookieManager.getInstance();
             String livePass = extractChanPassValue(cm.getCookie("https://sys.4chan.org"));
-            if (!livePass.equals(chan4.getPassWebCookie().get())) {
-                chan4.getPassWebCookie().set(livePass);
+            // Only copy WebView -> SharedPrefs if WebView has a value.
+            // An empty livePass means the WebView was cleared; must not wipe the stored token.
+            if (!livePass.isEmpty() && !livePass.equals(chan4.getCookieStore().getChanPass().get())) {
+                chan4.getCookieStore().setChanPass(livePass);
             }
-            passCookieLink.setDescription(livePass.isEmpty()
+            String storedPass = chan4.getCookieStore().getChanPass().get();
+            passCookieLink.setDescription(storedPass.isEmpty()
                     ? context.getString(R.string.setup_site_4chan_pass_cookie_not_set)
                     : context.getString(R.string.setup_site_4chan_pass_cookie_set));
         }
@@ -256,7 +260,7 @@ public class SiteSetupController extends SettingsController implements SiteSetup
             );
             verification.add(enterTokenLink);
 
-            String currentPassCookie = chan4site.getPassWebCookie().get();
+            String currentPassCookie = chan4site.getCookieStore().getChanPass().get();
             passCookieLink = new LinkSettingView(
                     this,
                     context.getString(R.string.setup_site_4chan_pass_cookie_name),
@@ -299,14 +303,19 @@ public class SiteSetupController extends SettingsController implements SiteSetup
     
     private void showPassCookieDialog() {
         Chan4 chan4 = (Chan4) site;
-        String currentValue = chan4.getPassWebCookie().get();
+        String currentValue = chan4.getCookieStore().getChanPass().get();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(R.string.setup_site_4chan_pass_cookie_dialog_title);
         builder.setMessage(R.string.setup_site_4chan_pass_cookie_dialog_message);
 
         final EditText input = new EditText(context);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        // Force wrap_content and proper expansion for long tokens.
+        // We use TYPE_TEXT_FLAG_MULTI_LINE to ensure the field grows and wraps correctly.
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+        input.setGravity(Gravity.TOP);
+        input.setMinLines(3);
+        input.setMaxLines(10);
         input.setHint(R.string.setup_site_4chan_pass_cookie_hint);
         if (!currentValue.isEmpty()) {
             input.setText(currentValue);
@@ -316,8 +325,7 @@ public class SiteSetupController extends SettingsController implements SiteSetup
 
         builder.setPositiveButton(R.string.save, (dialog, which) -> {
             String newValue = input.getText().toString().trim();
-            chan4.getPassWebCookie().set(newValue);
-            chan4.syncPassCookieToCookieManager();
+            chan4.getCookieStore().setChanPass(newValue);
             if (passCookieLink != null) {
                 passCookieLink.setDescription(context.getString(newValue.isEmpty()
                         ? R.string.setup_site_4chan_pass_cookie_not_set
@@ -331,8 +339,7 @@ public class SiteSetupController extends SettingsController implements SiteSetup
         });
 
         builder.setNeutralButton(R.string.clear, (dialog, which) -> {
-            chan4.getPassWebCookie().set("");
-            chan4.syncPassCookieToCookieManager();
+            chan4.getCookieStore().setChanPass("");
             if (passCookieLink != null) {
                 passCookieLink.setDescription(context.getString(R.string.setup_site_4chan_pass_cookie_not_set));
             }
