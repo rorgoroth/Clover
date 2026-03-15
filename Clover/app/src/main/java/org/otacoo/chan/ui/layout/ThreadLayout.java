@@ -583,6 +583,11 @@ public class ThreadLayout extends CoordinatorLayout implements
     }
 
     @Override
+    public void scrollToTopOf(int displayPosition) {
+        threadListLayout.scrollToTopOf(displayPosition);
+    }
+
+    @Override
     public void quote(Post post, boolean withText) {
         threadListLayout.openReply(true);
         threadListLayout.getReplyPresenter().quote(post, withText);

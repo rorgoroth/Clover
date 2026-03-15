@@ -533,6 +533,17 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
         return thumbnails;
     }
 
+    public void scrollToTopOf(int displayPosition) {
+        int scrollPosition = postAdapter.getScrollPosition(displayPosition);
+        if (layoutManager instanceof LinearLayoutManager) {
+            ((LinearLayoutManager) layoutManager).scrollToPositionWithOffset(scrollPosition, 0);
+        } else if (layoutManager instanceof GridLayoutManager) {
+            ((GridLayoutManager) layoutManager).scrollToPositionWithOffset(scrollPosition, 0);
+        } else {
+            recyclerView.scrollToPosition(scrollPosition);
+        }
+    }
+
     public void scrollTo(int displayPosition, boolean smooth) {
         if (displayPosition < 0) {
             int bottom = postAdapter.getItemCount() - 1;

@@ -685,6 +685,14 @@ public class ThreadPresenter implements
     @Override
     public void onPostNoClicked(Post post) {
         threadPresenterCallback.quote(post, false);
+        // Scroll the quoted post to the top of the visible area (right below the reply form)
+        List<Post> posts = threadPresenterCallback.getDisplayingPosts();
+        for (int i = 0; i < posts.size(); i++) {
+            if (posts.get(i).no == post.no) {
+                threadPresenterCallback.scrollToTopOf(i);
+                break;
+            }
+        }
     }
 
     @Override
@@ -923,6 +931,8 @@ public class ThreadPresenter implements
         void showAlbum(List<PostImage> images, int index);
 
         void scrollTo(int displayPosition, boolean smooth);
+
+        void scrollToTopOf(int displayPosition);
 
         void highlightPost(Post post);
 
