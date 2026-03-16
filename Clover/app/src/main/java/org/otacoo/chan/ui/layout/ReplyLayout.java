@@ -60,6 +60,7 @@ import android.widget.Toast;
 import com.google.android.material.snackbar.Snackbar;
 
 import org.otacoo.chan.R;
+import org.otacoo.chan.Chan;
 import org.otacoo.chan.core.model.ChanThread;
 import org.otacoo.chan.core.model.orm.Loadable;
 import org.otacoo.chan.core.presenter.ReplyPresenter;
@@ -672,18 +673,6 @@ public class ReplyLayout extends LoadView implements
                     ((Activity) getContext()).getWindow().setSoftInputMode(
                             WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
                 }
-                // Something (e.g. WebView) may re-show the keyboard; hide again after delays
-                final View replyView = this;
-                for (final long delayMs : new long[] { 80, 200, 400 }) {
-                    replyView.postDelayed(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (replyView.getWindowToken() != null) {
-                                AndroidUtils.hideKeyboard(replyView);
-                            }
-                        }
-                    }, delayMs);
-                }
                 break;
         }
 
@@ -772,15 +761,32 @@ public class ReplyLayout extends LoadView implements
             captchaContainer.removeView((View) authenticationLayout);
             authenticationLayout = null;
         }
-        Snackbar postSuccessfulNotification = Snackbar.make(this, R.string.reply_success, 4500);
-        postSuccessfulNotification.setAction(R.string.reply_success_recover, new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                presenter.reloadLastReply();
-                callback.openReply(true);
+
+        // On newer Android versions Snackbar.make() throws IllegalArgumentException if the
+        // supplied view is not attached to a window, so we fall back to the
+        // activity's content root, and further fall back to a Toast if that is also unavailable.
+        View snackbarParent = isAttachedToWindow() ? this : null;
+        if (snackbarParent == null) {
+            Activity activity = Chan.getInstance().getTopActivity();
+            if (activity != null) {
+                snackbarParent = activity.findViewById(android.R.id.content);
             }
-        }).show();
-        fixSnackbarText(getContext(), postSuccessfulNotification);
+        }
+
+        if (snackbarParent != null && snackbarParent.getWindowToken() != null) {
+            Snackbar postSuccessfulNotification = Snackbar.make(snackbarParent, R.string.reply_success, 4500);
+            postSuccessfulNotification.setAction(R.string.reply_success_recover, new OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    presenter.reloadLastReply();
+                    callback.openReply(true);
+                }
+            }).show();
+            fixSnackbarText(getContext(), postSuccessfulNotification);
+        } else {
+            Toast.makeText(getContext().getApplicationContext(), R.string.reply_success, Toast.LENGTH_SHORT).show();
+        }
+
         callback.openReply(false);
         callback.requestNewPostLoad();
     }
