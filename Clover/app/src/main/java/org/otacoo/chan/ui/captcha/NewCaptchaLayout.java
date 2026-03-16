@@ -545,9 +545,11 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                     String bodyLower = body.toLowerCase();
                     if (bodyLower.contains("not required") || bodyLower.contains("verified")) {
                         Logger.i(TAG, "interceptCaptchaRequest: server says verification not required, skipping captcha");
+                        // Mark as asset so onPageFinished skips extraction
+                        lastResponseWasAsset = true;
                         AndroidUtils.runOnUiThread(() -> onCaptchaEntered("", ""));
-                        return new WebResourceResponse("text/plain", "UTF-8",
-                                new ByteArrayInputStream(new byte[0]));
+                        return new WebResourceResponse("text/html", "UTF-8",
+                                new ByteArrayInputStream("<html><body></body></html>".getBytes(StandardCharsets.UTF_8)));
                     }
                     Logger.i(TAG, "interceptCaptchaRequest: No payload found in response body");
                     handleSiteErrorInIntercept(body);
