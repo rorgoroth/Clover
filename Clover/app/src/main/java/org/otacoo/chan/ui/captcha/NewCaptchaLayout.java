@@ -522,10 +522,13 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
                 String body = response.body() != null ? response.body().string() : "";
                 copyCookies(response);
 
-                // if we see the fingerprint landing page, tokens are likely stale.
-                if (body.contains("mcl.io") || body.contains("spur.us")) {
-                    Logger.i(TAG, "interceptCaptchaRequest: fingerprint page detected, deferring to native load");
-                    maybeToast("Fingerprinting appears stale. Refreshing...", false);
+                // if we see a Cloudflare challenge or fingerprint landing page, our cf_clearance
+                // is stale. Fall back to native WebView so Cloudflare can re-issue it.
+                if (body.contains("mcl.io") || body.contains("spur.us")
+                        || body.contains("cf-browser-verification") || body.contains("cf_chl_opt")
+                        || body.contains("jschl-answer") || body.contains("challenge-form")) {
+                    Logger.i(TAG, "interceptCaptchaRequest: Cloudflare/fingerprint challenge detected, deferring to native load");
+                    maybeToast("Session appears stale. Refreshing...", false);
                     refreshFingerprintSession();
                     skipInterceptNextLoad = true;
                     return null;
@@ -856,7 +859,7 @@ public class NewCaptchaLayout extends WebView implements AuthenticationLayoutInt
     // Returns true if the WebView already has a valid cf_clearance cookie
     private boolean hasCloudflareClearance() {
         String c = CookieManager.getInstance().getCookie("https://sys.4chan.org");
-        return c != null && c.contains("cf_clearance") && c.contains("__cf_bm");
+        return c != null && c.contains("cf_clearance");
     }
 
     private boolean hasFingerprintCookies() {
