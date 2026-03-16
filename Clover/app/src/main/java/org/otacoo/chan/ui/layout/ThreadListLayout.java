@@ -233,7 +233,7 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
                     break;
                 case CARD:
                     GridLayoutManager gridLayoutManager = new GridLayoutManager(
-                            null, spanCount, GridLayoutManager.VERTICAL, false) {
+                            getContext(), spanCount, GridLayoutManager.VERTICAL, false) {
                         @Override
                         public boolean requestChildRectangleOnScreen(
                                 RecyclerView parent, View child, Rect rect, boolean immediate,
