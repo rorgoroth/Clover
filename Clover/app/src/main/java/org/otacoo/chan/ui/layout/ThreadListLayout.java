@@ -544,6 +544,11 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     }
 
     public void scrollToTopOf(int displayPosition) {
+        if (replyOpen) {
+            // Re-measure the reply layout so the padding reflects its current height
+            // (e.g. after an image has been attached and the form grew taller).
+            setRecyclerViewPadding();
+        }
         int scrollPosition = postAdapter.getScrollPosition(displayPosition);
         if (layoutManager instanceof LinearLayoutManager) {
             ((LinearLayoutManager) layoutManager).scrollToPositionWithOffset(scrollPosition, 0);
