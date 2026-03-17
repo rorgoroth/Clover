@@ -108,16 +108,20 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
             padding: 20px;
             box-sizing: border-box;
             color: var(--c-fg);
             text-align: center;
         }
-        .t-client-overlay .message {
-            font-size: 16px;
-            color: var(--c-fg);
-            margin-bottom: 20px;
+        .ov-content {
+            width: 100%;
+            max-width: 340px;
+            min-height: 0;
+            margin: auto 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .t-client-overlay .btn {
             font-size: 16px;
@@ -168,10 +172,6 @@
         #t-native-instructions-text {
             flex: 1;
             min-width: 0;
-        }
-        #t-native-pick {
-            font-size: 13px;
-            margin-bottom: 8px;
         }
         #t-native-content {
             display: flex;
@@ -381,7 +381,7 @@
         .ov-msg-error   { color: #e53935; font-style: italic; word-break: break-word; margin-bottom: 20px; }
         .ov-msg         { color: var(--c-fg); word-break: break-word; margin-bottom: 20px; }
         .ov-reset-link  { font-size: 13px; color: var(--c-link); text-decoration: underline;
-                          cursor: pointer; margin-top: 28px; opacity: 0.8; }
+                          cursor: pointer; margin-top: auto; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); opacity: 0.8; }
     </style>
     <title></title>
 </head>
@@ -698,26 +698,31 @@ function showJsOverlay(message, title, isError, showGetCaptcha, showReset) {
     ov.id = 'clover-overlay';
     ov.className = 't-client-overlay';
 
+    var content = document.createElement('div');
+    content.className = 'ov-content';
+
     if (title) {
         var h = document.createElement('div');
         h.className = isError ? 'ov-title-error' : 'ov-title';
         h.textContent = title;
-        ov.appendChild(h);
+        content.appendChild(h);
     }
 
     var msgEl = document.createElement('div');
     msgEl.className = isError ? 'ov-msg-error' : 'ov-msg';
     var escaped = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     msgEl.innerHTML = escaped.replace(/\n/g, '<br>');
-    ov.appendChild(msgEl);
+    content.appendChild(msgEl);
 
     if (showGetCaptcha) {
         var btn = document.createElement('button');
         btn.className = 'btn';
         btn.textContent = 'Get New Captcha';
         btn.onclick = function() { requestCaptcha(); };
-        ov.appendChild(btn);
+        content.appendChild(btn);
     }
+
+    ov.appendChild(content);
 
     if (showReset) {
         var r = document.createElement('div');
@@ -811,6 +816,7 @@ function buildFromJson(data) {
         document.getElementById('t-msg-main').innerHTML = cooldownMessage(data.pcd_msg);
         document.getElementById('t-msg-secondary').textContent = '';
         showMsgButton('Get Captcha', false);
+        try { CaptchaCallback.onCaptchaLoaded(); } catch(e) {}
         return;
     }
 
@@ -840,6 +846,7 @@ function buildFromJson(data) {
         }
         updatePcd();
         cooldownInterval = setInterval(updatePcd, 1000);
+        try { CaptchaCallback.onCaptchaLoaded(); } catch(e) {}
         return;
     } else if (data.error) {
         var cd = parseCountdown(data.cd);
@@ -861,6 +868,7 @@ function buildFromJson(data) {
         }
         updateCd();
         cooldownInterval = setInterval(updateCd, 1000);
+        try { CaptchaCallback.onCaptchaLoaded(); } catch(e) {}
         return;
     }
 
@@ -1273,7 +1281,7 @@ window.globalOnCaptchaEntered = function() {
     window.addEventListener('load', function() { blurInput(document.activeElement); });
 })();
 
-window.addEventListener("load", function(event) {
+window.addEventListener("load", function() {
     try {
         var el = document.getElementById('clover-payload');
         var jsonStr = el ? el.textContent : '';
