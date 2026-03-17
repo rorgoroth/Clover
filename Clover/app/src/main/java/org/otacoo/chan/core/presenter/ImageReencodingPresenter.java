@@ -167,7 +167,7 @@ public class ImageReencodingPresenter {
                 && !imageOptions.getRemoveMetadata()
                 && !imageOptions.getChangeImageChecksum()
                 && imageOptions.getReencode() == null) {
-            reply.fileName = getNewImageName();
+            reply.fileName = getNewImageName(getPreferredExtension(reply));
             callback.onImageOptionsApplied(reply);
             return;
         }
@@ -192,7 +192,7 @@ public class ImageReencodingPresenter {
                 reply.file = resultFile;
 
                 if (imageOptions.getRemoveFilename()) {
-                    reply.fileName = getNewImageName();
+                    reply.fileName = getNewImageName(getPreferredExtension(reply));
                 } else if (imageOptions.getReencode() != null && imageOptions.getReencode().getReencodeType() != ReencodeType.AS_IS) {
                     String ext = imageOptions.getReencode().getReencodeType().name().substring(3).toLowerCase(Locale.ENGLISH);
                     int lastDotInFilename = reply.fileName.lastIndexOf(".");
@@ -225,12 +225,48 @@ public class ImageReencodingPresenter {
         }
     }
 
-    private String getNewImageName() {
+    private String getNewImageName(@Nullable String extension) {
         Random random = new Random();
         long now = System.currentTimeMillis();
         long offset = random.nextInt(31536000) * 1000L; // go back up to one year
         long newTime = (now - offset) * 1000L - random.nextInt(1000);
-        return String.valueOf(newTime);
+        String base = String.valueOf(newTime);
+        if (extension == null || extension.isEmpty()) {
+            return base;
+        }
+        return base + "." + extension;
+    }
+
+    @Nullable
+    private String getPreferredExtension(Reply reply) {
+        if (imageOptions.getReencode() != null && imageOptions.getReencode().getReencodeType() != ReencodeType.AS_IS) {
+            return imageOptions.getReencode().getReencodeType().name().substring(3).toLowerCase(Locale.ENGLISH);
+        }
+
+        String ext = extractExtension(reply.fileName);
+        if (ext != null) {
+            return ext;
+        }
+
+        if (reply.file != null) {
+            return extractExtension(reply.file.getName());
+        }
+
+        return null;
+    }
+
+    @Nullable
+    private String extractExtension(@Nullable String name) {
+        if (name == null) {
+            return null;
+        }
+
+        int lastDot = name.lastIndexOf('.');
+        if (lastDot <= 0 || lastDot >= name.length() - 1) {
+            return null;
+        }
+
+        return name.substring(lastDot + 1).toLowerCase(Locale.ENGLISH);
     }
 
     public static class ImageOptions {
