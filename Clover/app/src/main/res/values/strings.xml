@@ -357,6 +357,12 @@ If any ohter filters are enabled for it, it will not work.
     <string name="reply_error_empty">Nothing to post (add a comment or attach a file)</string>
     <string name="reply_error_message">Error posting: %s</string>
     <string name="reply_attach_from_url">Long-press to attach from URL</string>
+    <string name="reply_pick_with">Choose picker</string>
+    <string name="reply_picker_use_once">Use once</string>
+    <string name="reply_picker_always">Always use</string>
+    <string name="reply_picker_source_files">Files</string>
+    <string name="reply_picker_source_images">Gallery images</string>
+    <string name="reply_picker_source_videos">Gallery videos</string>
     <string name="reply_success">Post successful</string>
     <string name="reply_success_recover">Recover</string>
     <string name="reply_captcha_text">Type the text</string>
@@ -549,7 +555,7 @@ Crash reports do not collect any personally identifiable information."
     <string name="setting_enable_top_bottom_fab">Enable Top and Bottom buttons</string>
     <string name="setting_enable_top_bottom_fab_description">Easy up and down navigation</string>
     <string name="setting_enable_accessible_post_info">Enable accessible post info</string>
-    <string name="setting_enable_accessible_post_info_description">Place post info in a more accessible location</string>
+    <string name="setting_enable_accessible_post_info_description">Places post info in the first floating menu</string>
     <string name="setting_alternate_layout_mode_title">Alternate layout</string>
     <string name="setting_alternate_layout_mode_description">Show text below the thumbnail for posts with one image</string>
     <string name="setting_images_immersive_mode_title">Use immersive mode</string>
@@ -641,7 +647,12 @@ Crash reports do not collect any personally identifiable information."
     <string name="setting_save_mode_boardthread">Base folder/board/thread</string>
     <string name="setting_save_mode_legacy">Base folder/thread (legacy album)</string>
     <string name="setting_randomize_filename">Randomize Filename</string>
-    <string name="setting_randomize_filename_description">Change file name to random Unix timestamp within the past year</string>
+    <string name="setting_randomize_filename_description">Change file name to a random Unix timestamp within the past year</string>
+    <string name="setting_attachment_picker_default">Default file picker</string>
+    <string name="setting_attachment_picker_default_not_set">No saved picker choice</string>
+    <string name="setting_attachment_picker_reset">Reset file picker</string>
+    <string name="setting_attachment_picker_reset_description">Clear the saved file picker choice and ask again next time.</string>
+    <string name="setting_attachment_picker_reset_done">File picker choice cleared</string>
     <string name="setting_save_original_filename">Save server filename</string>
     <string name="setting_save_original_filename_description">
 "Save the image with the filename the site assigned.

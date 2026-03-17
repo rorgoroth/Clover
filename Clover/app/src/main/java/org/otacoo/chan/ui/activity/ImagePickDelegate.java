@@ -21,14 +21,21 @@ import static org.otacoo.chan.Chan.inject;
 import static org.otacoo.chan.utils.AndroidUtils.runOnUiThread;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ClipData;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 
 import org.otacoo.chan.core.manager.ReplyManager;
+import org.otacoo.chan.utils.AndroidUtils;
 import org.otacoo.chan.utils.IOUtils;
 import org.otacoo.chan.utils.Logger;
 
@@ -39,7 +46,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -49,6 +58,8 @@ public class ImagePickDelegate implements Runnable {
     private static final int IMAGE_PICK_RESULT = 2;
     private static final long MAX_FILE_SIZE = 15 * 1024 * 1024;
     private static final String DEFAULT_FILE_NAME = "file";
+    private static final String PREF_PICKER_KEY = "preference_reply_picker_target";
+    private static final String PREF_PICKER_LABEL = "preference_reply_picker_target_label";
 
     @Inject
     ReplyManager replyManager;
@@ -88,23 +99,149 @@ public class ImagePickDelegate implements Runnable {
             this.allowMultiple = allowMultiple;
             this.maxFileCount = maxFileCount;
 
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("*/*");
-
-            if (allowMultiple) {
-                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            }
-
-            if (intent.resolveActivity(activity.getPackageManager()) != null) {
-                activity.startActivityForResult(intent, IMAGE_PICK_RESULT);
-                return true;
-            } else {
+            List<PickerTarget> pickerTargets = buildPickerTargets();
+            if (pickerTargets.isEmpty()) {
                 Logger.e(TAG, "No activity found to get file with");
                 callback.onFilePickError(false);
                 reset();
                 return false;
             }
+
+            PickerTarget preferredTarget = findPreferredTarget(pickerTargets);
+            if (preferredTarget != null) {
+                activity.startActivityForResult(preferredTarget.intent, IMAGE_PICK_RESULT);
+                return true;
+            }
+
+            if (pickerTargets.size() == 1) {
+                activity.startActivityForResult(pickerTargets.get(0).intent, IMAGE_PICK_RESULT);
+                return true;
+            }
+
+            showPickerSelectionDialog(pickerTargets);
+            return true;
+        }
+    }
+
+    public static String getPreferredPickerLabel() {
+        return AndroidUtils.getPreferences().getString(PREF_PICKER_LABEL, "");
+    }
+
+    public static void clearPreferredPickerChoice() {
+        AndroidUtils.getPreferences().edit()
+                .remove(PREF_PICKER_KEY)
+                .remove(PREF_PICKER_LABEL)
+                .apply();
+    }
+
+    private Intent buildContentIntent() {
+        Intent contentIntent = new Intent(Intent.ACTION_GET_CONTENT);
+        contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
+        contentIntent.setType("*/*");
+
+        if (allowMultiple) {
+            contentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        }
+
+        return contentIntent;
+    }
+
+    private List<PickerTarget> buildPickerTargets() {
+        Map<String, PickerTarget> pickerTargets = new LinkedHashMap<>();
+
+        addResolvedTargets(pickerTargets, buildContentIntent(), activity.getString(org.otacoo.chan.R.string.reply_picker_source_files), "files");
+
+        if (!allowMultiple) {
+            addResolvedTargets(pickerTargets,
+                    new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI),
+                    activity.getString(org.otacoo.chan.R.string.reply_picker_source_images),
+                    "images");
+            addResolvedTargets(pickerTargets,
+                    new Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI),
+                    activity.getString(org.otacoo.chan.R.string.reply_picker_source_videos),
+                    "videos");
+        }
+
+        return new ArrayList<>(pickerTargets.values());
+    }
+
+    private void addResolvedTargets(Map<String, PickerTarget> pickerTargets, Intent baseIntent,
+                                    String sourceLabel, String sourceId) {
+        PackageManager packageManager = activity.getPackageManager();
+        List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(baseIntent, 0);
+
+        for (ResolveInfo resolveInfo : resolveInfos) {
+            ComponentName componentName = new ComponentName(resolveInfo.activityInfo.packageName, resolveInfo.activityInfo.name);
+            Intent targetedIntent = new Intent(baseIntent);
+            targetedIntent.setComponent(componentName);
+
+            String appLabel = resolveInfo.loadLabel(packageManager).toString();
+            String displayLabel = appLabel + " - " + sourceLabel;
+            String key = sourceId + "|" + componentName.flattenToShortString();
+
+            if (!pickerTargets.containsKey(key)) {
+                pickerTargets.put(key, new PickerTarget(key, displayLabel, targetedIntent));
+            }
+        }
+    }
+
+    private PickerTarget findPreferredTarget(List<PickerTarget> pickerTargets) {
+        SharedPreferences preferences = AndroidUtils.getPreferences();
+        String preferredTargetKey = preferences.getString(PREF_PICKER_KEY, "");
+        if (preferredTargetKey == null || preferredTargetKey.isEmpty()) {
+            return null;
+        }
+
+        for (PickerTarget pickerTarget : pickerTargets) {
+            if (preferredTargetKey.equals(pickerTarget.key)) {
+                return pickerTarget;
+            }
+        }
+
+        clearPreferredPickerChoice();
+        return null;
+    }
+
+    private void showPickerSelectionDialog(List<PickerTarget> pickerTargets) {
+        CharSequence[] pickerLabels = new CharSequence[pickerTargets.size()];
+        for (int i = 0; i < pickerTargets.size(); i++) {
+            pickerLabels[i] = pickerTargets.get(i).label;
+        }
+
+        final int[] selectedIndex = {0};
+        new AlertDialog.Builder(activity)
+                .setTitle(org.otacoo.chan.R.string.reply_pick_with)
+                .setSingleChoiceItems(pickerLabels, 0, (dialog, which) -> selectedIndex[0] = which)
+                .setPositiveButton(org.otacoo.chan.R.string.reply_picker_use_once, (dialog, which) ->
+                        activity.startActivityForResult(pickerTargets.get(selectedIndex[0]).intent, IMAGE_PICK_RESULT))
+                .setNeutralButton(org.otacoo.chan.R.string.reply_picker_always, (dialog, which) -> {
+                    PickerTarget pickerTarget = pickerTargets.get(selectedIndex[0]);
+                    AndroidUtils.getPreferences().edit()
+                            .putString(PREF_PICKER_KEY, pickerTarget.key)
+                            .putString(PREF_PICKER_LABEL, pickerTarget.label)
+                            .apply();
+                    activity.startActivityForResult(pickerTarget.intent, IMAGE_PICK_RESULT);
+                })
+                .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
+                    callback.onFilePickError(true);
+                    reset();
+                })
+                .setOnCancelListener(dialog -> {
+                    callback.onFilePickError(true);
+                    reset();
+                })
+                .show();
+    }
+
+    private static class PickerTarget {
+        private final String key;
+        private final String label;
+        private final Intent intent;
+
+        private PickerTarget(String key, String label, Intent intent) {
+            this.key = key;
+            this.label = label;
+            this.intent = intent;
         }
     }
 

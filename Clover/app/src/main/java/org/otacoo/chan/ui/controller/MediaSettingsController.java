@@ -29,10 +29,12 @@ import android.content.Intent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 
 import org.otacoo.chan.R;
 import org.otacoo.chan.core.presenter.StorageSetupPresenter;
 import org.otacoo.chan.core.settings.ChanSettings;
+import org.otacoo.chan.ui.activity.ImagePickDelegate;
 import org.otacoo.chan.ui.settings.BooleanSettingView;
 import org.otacoo.chan.ui.settings.IntegerSettingView;
 import org.otacoo.chan.ui.settings.LinkSettingView;
@@ -55,6 +57,7 @@ public class MediaSettingsController extends SettingsController implements
 
     // Special setting views
     private LinkSettingView saveLocation;
+    private LinkSettingView attachmentPickerDefault;
     private ListSettingView<ChanSettings.MediaAutoLoadMode> imageAutoLoadView;
     private ListSettingView<ChanSettings.MediaAutoLoadMode> videoAutoLoadView;
 
@@ -144,6 +147,11 @@ public class MediaSettingsController extends SettingsController implements
             media.add(new ListSettingView<>(this,
                     ChanSettings.saveAlbumFolder,
                     R.string.setting_save_album_folder, createDestinationFolderList()));
+            
+            attachmentPickerDefault = (LinkSettingView) media.add(new LinkSettingView(this,
+                    getString(R.string.setting_attachment_picker_default),
+                    getAttachmentPickerDescription(),
+                    v -> resetAttachmentPickerChoice()));
 
             media.add(new BooleanSettingView(this,
                     ChanSettings.useImmersiveModeForGallery,
@@ -328,5 +336,32 @@ public class MediaSettingsController extends SettingsController implements
             folderModes.add(new ListSettingView.Item<>(getString(name), mode));
         }
         return folderModes;
+    }
+
+    private String getAttachmentPickerDescription() {
+        String label = ImagePickDelegate.getPreferredPickerLabel();
+        if (label == null || label.isEmpty()) {
+            return getString(R.string.setting_attachment_picker_default_not_set);
+        }
+        return label;
+    }
+
+    private void resetAttachmentPickerChoice() {
+        String label = ImagePickDelegate.getPreferredPickerLabel();
+        if (label == null || label.isEmpty()) {
+            Toast.makeText(context, R.string.setting_attachment_picker_default_not_set, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(context)
+                .setTitle(R.string.setting_attachment_picker_reset)
+                .setMessage(R.string.setting_attachment_picker_reset_description)
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton(R.string.ok, (dialog, which) -> {
+                    ImagePickDelegate.clearPreferredPickerChoice();
+                    attachmentPickerDefault.setDescription(getAttachmentPickerDescription());
+                    Toast.makeText(context, R.string.setting_attachment_picker_reset_done, Toast.LENGTH_SHORT).show();
+                })
+                .show();
     }
 }
