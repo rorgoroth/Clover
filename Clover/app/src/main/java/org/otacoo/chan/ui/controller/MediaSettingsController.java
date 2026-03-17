@@ -343,7 +343,7 @@ public class MediaSettingsController extends SettingsController implements
         if (label == null || label.isEmpty()) {
             return getString(R.string.setting_attachment_picker_default_not_set);
         }
-        return label;
+        return context.getString(R.string.setting_attachment_picker_legacy_choice, label);
     }
 
     private void resetAttachmentPickerChoice() {

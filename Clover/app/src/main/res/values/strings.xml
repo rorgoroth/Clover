@@ -357,9 +357,10 @@ If any ohter filters are enabled for it, it will not work.
     <string name="reply_error_empty">Nothing to post (add a comment or attach a file)</string>
     <string name="reply_error_message">Error posting: %s</string>
     <string name="reply_attach_from_url">Long-press to attach from URL</string>
-    <string name="reply_pick_with">Choose picker</string>
+    <string name="reply_pick_with">Choose file picker</string>
     <string name="reply_picker_use_once">Use once</string>
     <string name="reply_picker_always">Always use</string>
+    <string name="reply_picker_source_gallery">Gallery</string>
     <string name="reply_picker_source_files">Files</string>
     <string name="reply_picker_source_images">Gallery images</string>
     <string name="reply_picker_source_videos">Gallery videos</string>
@@ -649,10 +650,11 @@ Crash reports do not collect any personally identifiable information."
     <string name="setting_randomize_filename">Randomize Filename</string>
     <string name="setting_randomize_filename_description">Change file name to a random Unix timestamp within the past year</string>
     <string name="setting_attachment_picker_default">Default file picker</string>
-    <string name="setting_attachment_picker_default_not_set">No saved picker choice</string>
-    <string name="setting_attachment_picker_reset">Reset file picker</string>
-    <string name="setting_attachment_picker_reset_description">Clear the saved file picker choice and ask again next time.</string>
-    <string name="setting_attachment_picker_reset_done">File picker choice cleared</string>
+    <string name="setting_attachment_picker_default_not_set">Always asks which app to use</string>
+    <string name="setting_attachment_picker_legacy_choice">Always use: %1$s</string>
+    <string name="setting_attachment_picker_reset">Reset default file picker</string>
+    <string name="setting_attachment_picker_reset_description">Clear the saved default and show the picker dialog?</string>
+    <string name="setting_attachment_picker_reset_done">Legacy picker choice cleared</string>
     <string name="setting_save_original_filename">Save server filename</string>
     <string name="setting_save_original_filename_description">
 "Save the image with the filename the site assigned.

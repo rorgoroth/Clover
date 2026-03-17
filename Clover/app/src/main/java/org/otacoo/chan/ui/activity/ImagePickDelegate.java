@@ -25,7 +25,6 @@ import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ComponentName;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
@@ -58,8 +57,9 @@ public class ImagePickDelegate implements Runnable {
     private static final int IMAGE_PICK_RESULT = 2;
     private static final long MAX_FILE_SIZE = 15 * 1024 * 1024;
     private static final String DEFAULT_FILE_NAME = "file";
-    private static final String PREF_PICKER_KEY = "preference_reply_picker_target";
-    private static final String PREF_PICKER_LABEL = "preference_reply_picker_target_label";
+    private static final String PREF_PICKER_KEY       = "preference_reply_picker_target";
+    private static final String PREF_PICKER_LABEL     = "preference_reply_picker_target_label";
+    private static final String PREF_PICKER_IS_GALLERY = "preference_reply_picker_is_gallery";
 
     @Inject
     ReplyManager replyManager;
@@ -76,6 +76,7 @@ public class ImagePickDelegate implements Runnable {
     private int maxFileCount = 1;
     private int pendingCount = 0;
     private int completedCount = 0;
+    private String[] mimeTypes = new String[]{"*/*"};
 
     @SuppressWarnings("this-escape")
     public ImagePickDelegate(Activity activity) {
@@ -88,38 +89,134 @@ public class ImagePickDelegate implements Runnable {
     }
 
     public boolean pick(ImagePickCallback callback, boolean allowMultiple) {
-        return pick(callback, allowMultiple, 1);
+        return pick(callback, allowMultiple, 1, null);
     }
 
     public boolean pick(ImagePickCallback callback, boolean allowMultiple, int maxFileCount) {
+        return pick(callback, allowMultiple, maxFileCount, null);
+    }
+
+    public boolean pick(ImagePickCallback callback, boolean allowMultiple, int maxFileCount, String[] mimeTypes) {
         if (this.callback != null) {
             return false;
+        }
+        this.callback = callback;
+        this.allowMultiple = allowMultiple;
+        this.maxFileCount = maxFileCount;
+        this.mimeTypes = (mimeTypes != null && mimeTypes.length > 0) ? mimeTypes : new String[]{"*/*"};
+
+        String savedComponent = AndroidUtils.getPreferences().getString(PREF_PICKER_KEY, null);
+        if (savedComponent != null) {
+            ComponentName cn = ComponentName.unflattenFromString(savedComponent);
+            if (cn != null) {
+                boolean isGallery = AndroidUtils.getPreferences().getBoolean(PREF_PICKER_IS_GALLERY, false);
+                launchWithComponent(cn, isGallery);
+                return true;
+            }
+            clearPreferredPickerChoice(); // stale, clear and fall through
+        }
+
+        showSourceDialog();
+        return true;
+    }
+
+    private void showSourceDialog() {
+        List<PickerTarget> targets = buildPickerTargets();
+
+        if (targets.isEmpty()) {
+            Logger.e(TAG, "No activity found to get file with");
+            callback.onFilePickError(false);
+            reset();
+            return;
+        }
+
+        if (targets.size() == 1) {
+            launchTarget(targets.get(0));
+            return;
+        }
+
+        String[] labels = new String[targets.size()];
+        for (int i = 0; i < targets.size(); i++) labels[i] = targets.get(i).label;
+
+        final int[] sel = {0};
+        AlertDialog dlg = new AlertDialog.Builder(activity)
+                .setTitle(org.otacoo.chan.R.string.reply_pick_with)
+                .setSingleChoiceItems(labels, 0, (d, which) -> sel[0] = which)
+                .setPositiveButton(org.otacoo.chan.R.string.reply_picker_always, (d, which) -> {
+                    PickerTarget t = targets.get(sel[0]);
+                    AndroidUtils.getPreferences().edit()
+                            .putString(PREF_PICKER_KEY,        t.component.flattenToShortString())
+                            .putString(PREF_PICKER_LABEL,      t.label)
+                            .putBoolean(PREF_PICKER_IS_GALLERY, t.isGallery)
+                            .apply();
+                    launchTarget(t);
+                })
+                .setNeutralButton(org.otacoo.chan.R.string.reply_picker_use_once,
+                        (d, which) -> launchTarget(targets.get(sel[0])))
+                .setOnCancelListener(d -> {
+                    callback.onFilePickError(true);
+                    reset();
+                })
+                .create();
+
+        dlg.show();
+    }
+
+    private List<PickerTarget> buildPickerTargets() {
+        PackageManager pm = activity.getPackageManager();
+        Map<ComponentName, PickerTarget> seen = new LinkedHashMap<>();
+
+        Intent galleryProbe = new Intent(Intent.ACTION_PICK,
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        for (ResolveInfo ri : pm.queryIntentActivities(galleryProbe, 0)) {
+            ComponentName cn = new ComponentName(
+                    ri.activityInfo.packageName, ri.activityInfo.name);
+            seen.put(cn, new PickerTarget(ri.loadLabel(pm).toString(), cn, true));
+        }
+
+        Intent filesProbe = new Intent(Intent.ACTION_GET_CONTENT);
+        filesProbe.addCategory(Intent.CATEGORY_OPENABLE);
+        filesProbe.setType("*/*");
+        for (ResolveInfo ri : pm.queryIntentActivities(filesProbe, 0)) {
+            ComponentName cn = new ComponentName(
+                    ri.activityInfo.packageName, ri.activityInfo.name);
+            if (!seen.containsKey(cn)) { // gallery already present → skip
+                seen.put(cn, new PickerTarget(ri.loadLabel(pm).toString(), cn, false));
+            }
+        }
+
+        return new ArrayList<>(seen.values());
+    }
+
+    private void launchTarget(PickerTarget target) {
+        launchWithComponent(target.component, target.isGallery);
+    }
+
+    private void launchWithComponent(ComponentName component, boolean isGallery) {
+        Intent intent;
+        if (isGallery && !allowMultiple) {
+            intent = new Intent(Intent.ACTION_PICK,
+                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
         } else {
-            this.callback = callback;
-            this.allowMultiple = allowMultiple;
-            this.maxFileCount = maxFileCount;
-
-            List<PickerTarget> pickerTargets = buildPickerTargets();
-            if (pickerTargets.isEmpty()) {
-                Logger.e(TAG, "No activity found to get file with");
-                callback.onFilePickError(false);
-                reset();
-                return false;
+            intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.addCategory(Intent.CATEGORY_OPENABLE);
+            if (mimeTypes.length == 1) {
+                intent.setType(mimeTypes[0]);
+            } else {
+                intent.setType("*/*");
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
             }
-
-            PickerTarget preferredTarget = findPreferredTarget(pickerTargets);
-            if (preferredTarget != null) {
-                activity.startActivityForResult(preferredTarget.intent, IMAGE_PICK_RESULT);
-                return true;
+            if (allowMultiple) {
+                intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             }
-
-            if (pickerTargets.size() == 1) {
-                activity.startActivityForResult(pickerTargets.get(0).intent, IMAGE_PICK_RESULT);
-                return true;
-            }
-
-            showPickerSelectionDialog(pickerTargets);
-            return true;
+        }
+        intent.setComponent(component);
+        try {
+            activity.startActivityForResult(intent, IMAGE_PICK_RESULT);
+        } catch (Exception e) {
+            Logger.e(TAG, "Failed to launch picker " + component, e);
+            callback.onFilePickError(false);
+            reset();
         }
     }
 
@@ -131,117 +228,19 @@ public class ImagePickDelegate implements Runnable {
         AndroidUtils.getPreferences().edit()
                 .remove(PREF_PICKER_KEY)
                 .remove(PREF_PICKER_LABEL)
+                .remove(PREF_PICKER_IS_GALLERY)
                 .apply();
     }
 
-    private Intent buildContentIntent() {
-        Intent contentIntent = new Intent(Intent.ACTION_GET_CONTENT);
-        contentIntent.addCategory(Intent.CATEGORY_OPENABLE);
-        contentIntent.setType("*/*");
-
-        if (allowMultiple) {
-            contentIntent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        }
-
-        return contentIntent;
-    }
-
-    private List<PickerTarget> buildPickerTargets() {
-        Map<String, PickerTarget> pickerTargets = new LinkedHashMap<>();
-
-        addResolvedTargets(pickerTargets, buildContentIntent(), activity.getString(org.otacoo.chan.R.string.reply_picker_source_files), "files");
-
-        if (!allowMultiple) {
-            addResolvedTargets(pickerTargets,
-                    new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI),
-                    activity.getString(org.otacoo.chan.R.string.reply_picker_source_images),
-                    "images");
-            addResolvedTargets(pickerTargets,
-                    new Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI),
-                    activity.getString(org.otacoo.chan.R.string.reply_picker_source_videos),
-                    "videos");
-        }
-
-        return new ArrayList<>(pickerTargets.values());
-    }
-
-    private void addResolvedTargets(Map<String, PickerTarget> pickerTargets, Intent baseIntent,
-                                    String sourceLabel, String sourceId) {
-        PackageManager packageManager = activity.getPackageManager();
-        List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(baseIntent, 0);
-
-        for (ResolveInfo resolveInfo : resolveInfos) {
-            ComponentName componentName = new ComponentName(resolveInfo.activityInfo.packageName, resolveInfo.activityInfo.name);
-            Intent targetedIntent = new Intent(baseIntent);
-            targetedIntent.setComponent(componentName);
-
-            String appLabel = resolveInfo.loadLabel(packageManager).toString();
-            String displayLabel = appLabel + " - " + sourceLabel;
-            String key = sourceId + "|" + componentName.flattenToShortString();
-
-            if (!pickerTargets.containsKey(key)) {
-                pickerTargets.put(key, new PickerTarget(key, displayLabel, targetedIntent));
-            }
-        }
-    }
-
-    private PickerTarget findPreferredTarget(List<PickerTarget> pickerTargets) {
-        SharedPreferences preferences = AndroidUtils.getPreferences();
-        String preferredTargetKey = preferences.getString(PREF_PICKER_KEY, "");
-        if (preferredTargetKey == null || preferredTargetKey.isEmpty()) {
-            return null;
-        }
-
-        for (PickerTarget pickerTarget : pickerTargets) {
-            if (preferredTargetKey.equals(pickerTarget.key)) {
-                return pickerTarget;
-            }
-        }
-
-        clearPreferredPickerChoice();
-        return null;
-    }
-
-    private void showPickerSelectionDialog(List<PickerTarget> pickerTargets) {
-        CharSequence[] pickerLabels = new CharSequence[pickerTargets.size()];
-        for (int i = 0; i < pickerTargets.size(); i++) {
-            pickerLabels[i] = pickerTargets.get(i).label;
-        }
-
-        final int[] selectedIndex = {0};
-        new AlertDialog.Builder(activity)
-                .setTitle(org.otacoo.chan.R.string.reply_pick_with)
-                .setSingleChoiceItems(pickerLabels, 0, (dialog, which) -> selectedIndex[0] = which)
-                .setPositiveButton(org.otacoo.chan.R.string.reply_picker_use_once, (dialog, which) ->
-                        activity.startActivityForResult(pickerTargets.get(selectedIndex[0]).intent, IMAGE_PICK_RESULT))
-                .setNeutralButton(org.otacoo.chan.R.string.reply_picker_always, (dialog, which) -> {
-                    PickerTarget pickerTarget = pickerTargets.get(selectedIndex[0]);
-                    AndroidUtils.getPreferences().edit()
-                            .putString(PREF_PICKER_KEY, pickerTarget.key)
-                            .putString(PREF_PICKER_LABEL, pickerTarget.label)
-                            .apply();
-                    activity.startActivityForResult(pickerTarget.intent, IMAGE_PICK_RESULT);
-                })
-                .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
-                    callback.onFilePickError(true);
-                    reset();
-                })
-                .setOnCancelListener(dialog -> {
-                    callback.onFilePickError(true);
-                    reset();
-                })
-                .show();
-    }
-
     private static class PickerTarget {
-        private final String key;
-        private final String label;
-        private final Intent intent;
+        final String        label;
+        final ComponentName component;
+        final boolean       isGallery;
 
-        private PickerTarget(String key, String label, Intent intent) {
-            this.key = key;
-            this.label = label;
-            this.intent = intent;
+        PickerTarget(String label, ComponentName component, boolean isGallery) {
+            this.label     = label;
+            this.component = component;
+            this.isGallery = isGallery;
         }
     }
 
@@ -454,6 +453,7 @@ public class ImagePickDelegate implements Runnable {
         uris = null;
         allowMultiple = false;
         maxFileCount = 1;
+        mimeTypes = new String[]{"*/*"};
         pendingCount = 0;
         completedCount = 0;
     }
