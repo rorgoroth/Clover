@@ -662,6 +662,7 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
             // Legacy single file mode (for 4chan and single-file sites)
             draft.file = file;
             draft.fileName = finalFileName;
+            draft.spoilerImage = false;
             showPreview(finalFileName, file);
         }
     }
@@ -719,7 +720,8 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
         
         Logger.i(TAG, "makeSubmitCall: site=" + loadable.site.name() + ", board=" + loadable.board + ", thread=" + loadable.no);
         Logger.i(TAG, "makeSubmitCall: captchaChallenge present: " + (draft.captchaChallenge != null && !draft.captchaChallenge.isEmpty()) + 
-                ", captchaResponse present: " + (draft.captchaResponse != null && !draft.captchaResponse.isEmpty()));
+            ", captchaResponse present: " + (draft.captchaResponse != null && !draft.captchaResponse.isEmpty())
+            + ", spoilerImage=" + draft.spoilerImage);
 
         loadable.getSite().actions().post(draft, this);
         switchPage(Page.LOADING, true);
@@ -784,7 +786,7 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
             callback.openSpoiler(
                     loadable.getSite().boardFeature(Site.BoardFeature.POSTING_SPOILER, board)
                             && isSingleFileMode(),
-                    false);
+                draft.spoilerImage);
         }
         callback.setFileName(name);
         previewOpen = true;

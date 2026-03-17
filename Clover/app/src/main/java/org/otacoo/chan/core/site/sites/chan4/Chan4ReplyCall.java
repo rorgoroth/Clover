@@ -51,6 +51,11 @@ public class Chan4ReplyCall extends CommonReplyHttpCall {
         String referer = site.resolvable().desktopUrl(reply.loadable, null);
         requestBuilder.header("Origin", "https://boards.4chan.org");
         requestBuilder.header("Referer", referer);
+        requestBuilder.header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8");
+        requestBuilder.header("Sec-Fetch-Dest", "document");
+        requestBuilder.header("Sec-Fetch-Mode", "navigate");
+        requestBuilder.header("Sec-Fetch-Site", "same-site");
+        requestBuilder.header("Sec-Fetch-User", "?1");
     }
 
     @Override
@@ -83,12 +88,12 @@ public class Chan4ReplyCall extends CommonReplyHttpCall {
             }
         }
 
-        if (reply.file != null) {
-            attachFile(formBuilder, progressListener);
-        }
-
         if (reply.spoilerImage) {
             formBuilder.addFormDataPart("spoiler", "on");
+        }
+
+        if (reply.file != null) {
+            attachFile(formBuilder, progressListener);
         }
 
         if (reply.flag != null && !reply.flag.isEmpty()) {
