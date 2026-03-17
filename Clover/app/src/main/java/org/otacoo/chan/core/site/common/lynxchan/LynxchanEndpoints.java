@@ -29,15 +29,12 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
 
     @Override
     public HttpUrl boards() {
-        return root().newBuilder().addPathSegment("boards.js").build();
+        return root.builder().s("boards.js").url();
     }
 
     @Override
     public HttpUrl catalog(Board board) {
-        return root().newBuilder()
-                .addPathSegment(board.code)
-                .addPathSegment("catalog.json")
-                .build();
+        return root.builder().s(board.code).s("catalog.json").url();
     }
 
     @Override
@@ -47,11 +44,7 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
 
     @Override
     public HttpUrl thread(Board board, Loadable loadable) {
-        return root().newBuilder()
-                .addPathSegment(board.code)
-                .addPathSegment("res")
-                .addPathSegment(loadable.no + ".json")
-                .build();
+        return root.builder().s(board.code).s("res").s(loadable.no + ".json").url();
     }
 
     @Override
@@ -65,7 +58,7 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
             path = path.substring(1);
         }
         
-        return root().newBuilder().addPathSegments(path).build();
+        return root.builder().ss(path).url();
     }
 
     @Override
@@ -74,7 +67,7 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
         if (thumb == null) return imageUrl(post, arg);
         if (thumb.startsWith("http")) return HttpUrl.parse(thumb);
         if (thumb.startsWith("/")) thumb = thumb.substring(1);
-        return root().newBuilder().addPathSegments(thumb).build();
+        return root.builder().ss(thumb).url();
     }
 
     @Override
@@ -82,7 +75,7 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
         String flagPath = arg.get("flag");
         if (flagPath != null) {
             if (flagPath.startsWith("/")) flagPath = flagPath.substring(1);
-            return root().newBuilder().addPathSegments(flagPath).build();
+            return root.builder().ss(flagPath).url();
         }
         return null;
     }
@@ -90,49 +83,43 @@ public class LynxchanEndpoints extends CommonSite.CommonEndpoints {
     @Override
     public HttpUrl reply(Loadable loadable) {
         String path = loadable.isThreadMode() ? "replyThread.js" : "newThread.js";
-        return root().newBuilder().addPathSegment(path).addQueryParameter("json", "1").build();
+        return root.builder().s(path).url().newBuilder().addQueryParameter("json", "1").build();
     }
 
     @Override
     public HttpUrl delete(Post post) {
-        return root().newBuilder()
-                .addPathSegment(post.board.code)
-                .addPathSegment("deletePost")
-                .build();
+        return root.builder().s(post.board.code).s("deletePost").url();
     }
 
     @Override
     public HttpUrl login() {
-        return root().newBuilder().addPathSegment("login.html").build();
+        return root.builder().s("login.html").url();
     }
 
     public HttpUrl blockBypass() {
-        return root().newBuilder().addPathSegment("blockBypass.js").build();
+        return root.builder().s("blockBypass.js").url();
     }
 
     @Override
     public HttpUrl report(Post post) {
-        return root().newBuilder()
-                .addPathSegment(post.board.code)
-                .addPathSegment("reportPost")
-                .build();
+        return root.builder().s(post.board.code).s("reportPost").url();
     }
 
     public HttpUrl captcha() {
-        return root().newBuilder().addPathSegment("captcha.js").build();
+        return root.builder().s("captcha.js").url();
     }
 
     // Not used for 8chan (captcha is submitted inline with the post form).
     // May be needed for other Lynxchan sites with a separate captcha-solve step.
     public HttpUrl solveCaptcha() {
-        return root().newBuilder().addPathSegment("solveCaptcha.js").build();
+        return root.builder().s("solveCaptcha.js").url();
     }
 
     public HttpUrl renewBypass() {
-        return root().newBuilder().addPathSegment("renewBypass.js").build();
+        return root.builder().s("renewBypass.js").url();
     }
 
     public HttpUrl validateBypass() {
-        return root().newBuilder().addPathSegment("validateBypass.js").build();
+        return root.builder().s("validateBypass.js").url();
     }
 }
