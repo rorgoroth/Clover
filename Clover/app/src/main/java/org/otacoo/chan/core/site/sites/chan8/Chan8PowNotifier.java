@@ -27,15 +27,6 @@ public final class Chan8PowNotifier {
 
     public static void onPowStarted() {
         powInProgress = true;
-        AndroidUtils.runOnUiThread(() -> {
-            View root = rootViewRef.get();
-            if (root == null) return;
-            dismissActive();
-            Snackbar sb = Snackbar.make(root, "Solving POWBlock check\u2026", Snackbar.LENGTH_INDEFINITE);
-            AndroidUtils.fixSnackbarText(root.getContext(), sb);
-            sb.show();
-            activeSnackbar = sb;
-        });
     }
 
     public static void scheduleRetryOnNextSolve(Runnable retry) {
