@@ -214,8 +214,10 @@ public class Chan8PowInterceptor implements Interceptor {
 
             Chan8PowNotifier.onPowStarted();
 
+            int algorithm = NetModule.extractPowAlgorithm(html);
+            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW algorithm=" + algorithm + " difficulty=" + difficulty);
             long t0 = System.currentTimeMillis();
-            Chan8ProofOfWork solver = new Chan8ProofOfWork(token, difficulty, 256);
+            Chan8ProofOfWork solver = new Chan8ProofOfWork(token, difficulty, algorithm);
             Integer solution = solver.find();
             long elapsed = System.currentTimeMillis() - t0;
             if (solution == null) {

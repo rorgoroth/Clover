@@ -203,6 +203,26 @@ public class NetModule {
         return null;
     }
 
+    // Returns 256 or 512 depending on the algorithm specified in the POWBlock challenge HTML.
+    public static int extractPowAlgorithm(String html) {
+        if (html == null) return 256;
+        String[] patterns = new String[] {
+                // POWBlock: <pre id=a style=display:none>512</pre>
+                "<pre\\s+id\\s*=\\s*['\"]?a['\"]?[^>]*>(\\d+)</pre>",
+                "['\"]a['\"]\\s*[:=]\\s*(\\d+)",
+                "algorithm\\s*[=:]\\s*(\\d+)",
+                "alg\\s*[=:]\\s*(\\d+)"
+        };
+        for (String pattern : patterns) {
+            String value = firstMatch(html, pattern);
+            if (value != null) {
+                if ("512".equals(value.trim())) return 512;
+                if ("256".equals(value.trim())) return 256;
+            }
+        }
+        return 256; // default
+    }
+
     @Provides
     @Singleton
     public OkHttpClient provideOkHttpClient(UserAgentProvider userAgentProvider) {
