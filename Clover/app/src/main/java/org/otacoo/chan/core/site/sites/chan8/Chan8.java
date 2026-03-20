@@ -61,7 +61,7 @@ public class Chan8 extends CommonSite {
         AUTO("auto"),
         MOE("moe"),
         ST("st"),
-        CC("cc");
+
 
         private final String key;
         PreferredDomain(String k) { this.key = k; }
@@ -112,7 +112,7 @@ public class Chan8 extends CommonSite {
 
         if (toRestore.isEmpty()) return;
 
-        String[] domains = {"https://8chan.moe/", "https://8chan.st/", "https://8chan.cc/"};
+        String[] domains = {"https://8chan.moe/", "https://8chan.st/"};
         for (String[] entry : toRestore) {
             for (String domain : domains) {
                 try {
@@ -137,7 +137,6 @@ public class Chan8 extends CommonSite {
         switch (pref) {
             case MOE: Chan8RateLimit.setForcedDomain(Chan8RateLimit.PRIMARY_DOMAIN); break;
             case ST:  Chan8RateLimit.setForcedDomain(Chan8RateLimit.SECONDARY_DOMAIN); break;
-            case CC:  Chan8RateLimit.setForcedDomain(Chan8RateLimit.TERTIARY_DOMAIN); break;
             default:  Chan8RateLimit.setForcedDomain(null); break;
         }
     }
@@ -148,7 +147,7 @@ public class Chan8 extends CommonSite {
         list.add(SiteSetting.forOption(
                 preferredDomain,
                 "Force 8chan domain",
-                Arrays.asList("Auto (failover)", "8chan.moe", "8chan.st", "8chan.cc")));
+                Arrays.asList("Auto (failover)", "8chan.moe", "8chan.st")));
         return list;
     }
 
@@ -164,7 +163,7 @@ public class Chan8 extends CommonSite {
 
         @Override
         public String[] getNames() {
-            return new String[]{"8chan", "8chan.moe", "8chan.st", "8chan.cc"};
+            return new String[]{"8chan", "8chan.moe", "8chan.st"};
         }
 
         @Override
@@ -172,7 +171,7 @@ public class Chan8 extends CommonSite {
             String host = url.host();
             return Chan8RateLimit.PRIMARY_DOMAIN.equals(host)
                     || Chan8RateLimit.SECONDARY_DOMAIN.equals(host)
-                    || Chan8RateLimit.TERTIARY_DOMAIN.equals(host);
+                    || Chan8RateLimit.SECONDARY_DOMAIN.equals(host);
         }
 
         @Override
@@ -335,7 +334,7 @@ public class Chan8 extends CommonSite {
         public String verificationUrl() {
             // Check WebView CookieManager directly — it is the authoritative store on the main
             // thread and is always up to date after a verification session.
-            String[] checkUrls = {"https://8chan.moe/", "https://8chan.st/", "https://8chan.cc/"};
+            String[] checkUrls = {"https://8chan.moe/", "https://8chan.st/"};
             for (String url : checkUrls) {
                 String cookies = android.webkit.CookieManager.getInstance().getCookie(url);
                 if (cookies != null

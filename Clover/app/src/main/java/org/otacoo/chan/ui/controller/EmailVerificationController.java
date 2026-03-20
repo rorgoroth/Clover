@@ -217,7 +217,7 @@ public class EmailVerificationController extends Controller {
                 String cookies = CookieManager.getInstance().getCookie(url);
                 Logger.d(TAG, "onPageFinished url=" + url + " cookies=" + cookies);
 
-                boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st") || initialUrl.contains("8chan.cc"));
+                boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st"));
 
                 if (is8chan) {
                     checkCookies();
@@ -285,7 +285,7 @@ public class EmailVerificationController extends Controller {
         CookieManager.getInstance().flush();
 
         // Sync WebView cookies into the java.net/OkHttp jar for 8chan.
-        boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st") || initialUrl.contains("8chan.cc"));
+        boolean is8chan = initialUrl != null && (initialUrl.contains("8chan.moe") || initialUrl.contains("8chan.st"));
         if (is8chan) {
             NetModule.syncCookiesToJar(initialUrl);
         }

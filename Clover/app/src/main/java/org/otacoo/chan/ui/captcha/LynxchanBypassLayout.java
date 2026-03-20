@@ -148,7 +148,7 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
         mainHandler.post(() -> {
             try {
                 android.webkit.CookieManager wvcm = android.webkit.CookieManager.getInstance();
-                for (String d : new String[]{"https://8chan.moe/", "https://8chan.st/", "https://8chan.cc/"}) {
+                for (String d : new String[]{"https://8chan.moe/", "https://8chan.st/"}) {
                     wvcm.setCookie(d, "captchaid=; Max-Age=0; Path=/");
                 }
                 wvcm.flush();

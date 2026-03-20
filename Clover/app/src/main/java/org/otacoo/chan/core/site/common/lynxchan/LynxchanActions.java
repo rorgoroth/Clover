@@ -326,7 +326,7 @@ public class LynxchanActions extends CommonSite.CommonActions {
     }
 
     private boolean hasBypassCookie() {
-        String[] urls = {"https://8chan.moe/", "https://8chan.st/", "https://8chan.cc/"};
+        String[] urls = {"https://8chan.moe/", "https://8chan.st/"};
         java.net.CookieManager cm = org.otacoo.chan.core.di.NetModule.getSharedCookieManager();
         if (cm != null) {
             for (String url : urls) {
@@ -360,8 +360,7 @@ public class LynxchanActions extends CommonSite.CommonActions {
         if (host.contains("8chan")) {
             urls = new String[]{
                 "https://8chan.moe/",
-                "https://8chan.st/",
-                "https://8chan.cc/"
+                "https://8chan.st/"
             };
         }
         

@@ -19,7 +19,7 @@ package org.otacoo.chan.core.site.sites.chan8;
 
 import java.util.concurrent.Semaphore;
 
-/** Shared rate-limiter and domain-failover helper for 8chan.moe / 8chan.st. / 8chan.cc */
+/** Shared rate-limiter and domain-failover helper for 8chan.moe / 8chan.st. */
 public final class Chan8RateLimit {
 
     private static final int MAX_CONCURRENT = 8;
@@ -27,15 +27,12 @@ public final class Chan8RateLimit {
 
     /** Primary domain, always the default on a fresh start. */
     public static final String PRIMARY_DOMAIN = "8chan.moe";
-        /** First fallback domain when PRIMARY_DOMAIN is unreachable. */
+        /** Fallback domain when PRIMARY_DOMAIN is unreachable. */
         public static final String SECONDARY_DOMAIN = "8chan.st";
-        /** Second fallback domain when PRIMARY_DOMAIN and SECONDARY_DOMAIN are unreachable. */
-        public static final String TERTIARY_DOMAIN = "8chan.cc";
 
         private static final String[] DOMAIN_ORDER = new String[] {
             PRIMARY_DOMAIN,
-            SECONDARY_DOMAIN,
-            TERTIARY_DOMAIN
+            SECONDARY_DOMAIN
         };
 
     // Active domain for this session.  In-memory only — resets to primary on restart.
@@ -47,7 +44,7 @@ public final class Chan8RateLimit {
     private Chan8RateLimit() {}
 
     public static boolean is8chan(String url) {
-        return url.contains("8chan.moe") || url.contains("8chan.st") || url.contains("8chan.cc");
+        return url.contains("8chan.moe") || url.contains("8chan.st");
     }
 
     public static boolean isMedia(String url) {
@@ -64,7 +61,7 @@ public final class Chan8RateLimit {
     public static void setForcedDomain(String domain) {
         if (domain == null) {
             forcedDomain = null;
-        } else if (domain.equals(PRIMARY_DOMAIN) || domain.equals(SECONDARY_DOMAIN) || domain.equals(TERTIARY_DOMAIN)) {
+        } else if (domain.equals(PRIMARY_DOMAIN) || domain.equals(SECONDARY_DOMAIN)) {
             forcedDomain = domain;
             activeDomain = domain;
         }
@@ -77,7 +74,7 @@ public final class Chan8RateLimit {
      */
     public static void setActiveDomain(String domain) {
         if (domain != null &&
-                (domain.equals("8chan.moe") || domain.equals("8chan.st") || domain.equals("8chan.cc"))) {
+                (domain.equals("8chan.moe") || domain.equals("8chan.st"))) {
             activeDomain = domain;
         }
     }
@@ -91,7 +88,6 @@ public final class Chan8RateLimit {
         if (url.contains(domain)) return url;
         if (url.contains("8chan.moe")) return url.replace("8chan.moe", domain);
         if (url.contains("8chan.st"))  return url.replace("8chan.st",  domain);
-        if (url.contains("8chan.cc"))  return url.replace("8chan.cc",  domain);
         return url;
     }
 
