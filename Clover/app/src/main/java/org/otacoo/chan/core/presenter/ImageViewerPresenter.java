@@ -307,6 +307,9 @@ public class ImageViewerPresenter implements MultiImageView.Callback, ViewPager.
                     callback.setImageMode(postImage, MultiImageView.Mode.GIF, true);
                 } else if (postImage.type == PostImage.Type.MOVIE && currentMode != MultiImageView.Mode.MOVIE) {
                     callback.setImageMode(postImage, MultiImageView.Mode.MOVIE, true);
+                } else if (postImage.type == PostImage.Type.MOVIE && currentMode == MultiImageView.Mode.MOVIE) {
+                    // Video is already playing, onClick in MultiImageView already toggled the
+                    // player controls; nothing else to do here (do NOT exit the viewer)
                 } else if (postImage.type == PostImage.Type.SWF && currentMode != MultiImageView.Mode.OTHER) {
                     callback.setImageMode(postImage, MultiImageView.Mode.OTHER, true);
                 } else {
