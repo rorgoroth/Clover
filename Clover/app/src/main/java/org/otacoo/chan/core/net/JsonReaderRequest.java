@@ -45,6 +45,11 @@ public abstract class JsonReaderRequest<T> implements Callback {
     @Override
     public void onFailure(@NonNull Call call, @NonNull IOException e) {
         if (call.isCanceled()) return;
+        // Treat any 8chan network-level failure as a potential domain outage.
+        String host = call.request().url().host();
+        if (host.contains("8chan")) {
+            org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.notifyDomainUnreachable(host);
+        }
         AndroidUtils.runOnUiThread(() -> listener.onError(e.getMessage()));
     }
 

@@ -13,28 +13,6 @@ public class Chan8PowInterceptor implements Interceptor {
     private static volatile java.util.concurrent.CountDownLatch _latch = null;
     private static volatile okhttp3.OkHttpClient nonRedirectClient = null;
 
-    // Minimum gap between consecutive 8chan requests to avoid triggering the rate limiter.
-    private static final long MIN_REQUEST_INTERVAL_MS = 800L;
-    private static final java.util.concurrent.atomic.AtomicLong lastRequestMs =
-            new java.util.concurrent.atomic.AtomicLong(0L);
-
-    /** Enforces MIN_REQUEST_INTERVAL_MS between outgoing 8chan requests via CAS spin. */
-    private static void throttle() {
-        while (true) {
-            long now = System.currentTimeMillis();
-            long last = lastRequestMs.get();
-            long wait = MIN_REQUEST_INTERVAL_MS - (now - last);
-            if (wait <= 0) {
-                if (lastRequestMs.compareAndSet(last, now)) return;
-            } else {
-                try { Thread.sleep(wait); } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-            }
-        }
-    }
-
     private static okhttp3.OkHttpClient getNonRedirectClient() {
         if (nonRedirectClient != null) return nonRedirectClient;
         synchronized (Chan8PowInterceptor.class) {
@@ -97,13 +75,28 @@ public class Chan8PowInterceptor implements Interceptor {
     public Response intercept(Chain chain) throws java.io.IOException {
         Request req = chain.request();
 
-        // Throttle all outgoing 8chan requests (except internal bypass/retry ones) so
-        // pin-watcher batch updates don't trigger the server's rate limiter.
-        if (req.url().host().contains("8chan") && req.header(POW_BYPASS_HEADER) == null) {
-            throttle();
+        Response resp;
+        try {
+            resp = chain.proceed(req);
+        } catch (java.io.IOException ioEx) {
+            // Network-level failure (DNS, refused connection, timeout).
+            // If this is an unforced 8chan request, switch to the fallback domain and retry once.
+            String host = req.url().host();
+            if (host.contains("8chan") && req.header(POW_BYPASS_HEADER) == null
+                    && org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.getForcedDomain() == null) {
+                org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.notifyDomainUnreachable(host);
+                String newDomain = org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit.getActiveDomain();
+                if (!newDomain.equals(host)) {
+                    // The active domain changed — rewrite the URL and retry on the new domain.
+                    String newUrl = req.url().toString().replace(host, newDomain);
+                    org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor",
+                            "IOException on " + host + "; retrying on " + newDomain);
+                    Request retryReq = req.newBuilder().url(newUrl).build();
+                    return chain.proceed(retryReq);
+                }
+            }
+            throw ioEx;
         }
-
-        Response resp = chain.proceed(req);
 
         // Handle 429 rate-limit: back off and retry once.
         if (resp.code() == 429 && req.url().host().contains("8chan")) {
@@ -114,9 +107,9 @@ public class Chan8PowInterceptor implements Interceptor {
             }
             sleepMs = Math.min(sleepMs, 30_000L);
             org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "429 rate-limited; sleeping " + sleepMs + "ms before retry");
+            Chan8PowNotifier.showRateLimit();
             resp.close();
             try { Thread.sleep(sleepMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
-            lastRequestMs.set(System.currentTimeMillis());
             resp = chain.proceed(req);
         }
 

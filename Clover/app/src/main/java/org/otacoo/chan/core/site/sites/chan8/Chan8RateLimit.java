@@ -57,6 +57,11 @@ public final class Chan8RateLimit {
         return f != null ? f : activeDomain;
     }
 
+    // Returns the forced domain, or null if in auto-failover mode.
+    public static String getForcedDomain() {
+        return forcedDomain;
+    }
+
     // Forces all 8chan traffic to a specific domain for this session.
     public static void setForcedDomain(String domain) {
         if (domain == null) {

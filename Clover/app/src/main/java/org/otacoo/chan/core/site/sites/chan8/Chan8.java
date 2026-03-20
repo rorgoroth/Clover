@@ -60,7 +60,7 @@ public class Chan8 extends CommonSite {
     public enum PreferredDomain implements OptionSettingItem {
         AUTO("auto"),
         MOE("moe"),
-        ST("st"),
+        ST("st");
 
 
         private final String key;

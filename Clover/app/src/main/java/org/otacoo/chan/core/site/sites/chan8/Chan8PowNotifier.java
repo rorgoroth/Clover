@@ -53,6 +53,18 @@ public final class Chan8PowNotifier {
         });
     }
 
+    public static void showRateLimit() {
+        AndroidUtils.runOnUiThread(() -> {
+            View root = rootViewRef.get();
+            if (root == null) return;
+            Snackbar sb = Snackbar.make(root,
+                    "Rate limiting: too many requests, slow down please.",
+                    Snackbar.LENGTH_SHORT);
+            AndroidUtils.fixSnackbarText(root.getContext(), sb);
+            sb.show();
+        });
+    }
+
     public static void onPowFailed() {
         powInProgress = false;
         AndroidUtils.runOnUiThread(() -> {
