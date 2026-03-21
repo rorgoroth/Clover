@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minimal Japanese translations (core UI buttons) -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="ja">
+    <string name="cancel">キャンセル</string>
+    <string name="add">追加</string>
+    <string name="close">閉じる</string>
+    <string name="back">戻る</string>
+    <string name="ok">OK</string>
+    <string name="exit">終了</string>
+    <string name="delete">削除</string>
+    <string name="remove">取り除く</string>
+    <string name="undo">元に戻す</string>
+    <string name="save">保存</string>
+    <string name="clear">消去</string>
+</resources>

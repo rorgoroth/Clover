@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minimal Spanish translations (core UI buttons) -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="es">
+    <string name="cancel">Cancelar</string>
+    <string name="add">Añadir</string>
+    <string name="close">Cerrar</string>
+    <string name="back">Atrás</string>
+    <string name="ok">OK</string>
+    <string name="exit">Salir</string>
+    <string name="delete">Eliminar</string>
+    <string name="remove">Quitar</string>
+    <string name="undo">Deshacer</string>
+    <string name="save">Guardar</string>
+    <string name="clear">Borrar</string>
+</resources>

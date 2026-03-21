@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Core/common Italian translations (trimmed) -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="it">
+    <string name="cancel">Annulla</string>
+    <string name="add">Aggiungi</string>
+    <string name="close">Chiudi</string>
+    <string name="back">Indietro</string>
+    <string name="ok">OK</string>
+    <string name="exit">Esci</string>
+    <string name="delete">Elimina</string>
+    <string name="remove">Rimuovi</string>
+    <string name="undo">Annulla</string>
+    <string name="save">Salva</string>
+    <string name="clear">Cancella</string>
+</resources>

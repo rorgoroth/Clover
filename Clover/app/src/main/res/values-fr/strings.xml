@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Core/common French translations (trimmed) -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:locale="fr">
+    <string name="cancel">Annuler</string>
+    <string name="add">Ajouter</string>
+    <string name="close">Fermer</string>
+    <string name="back">Retour</string>
+    <string name="ok">OK</string>
+    <string name="exit">Quitter</string>
+    <string name="delete">Supprimer</string>
+    <string name="remove">Retirer</string>
+    <string name="undo">Annuler</string>
+    <string name="save">Enregistrer</string>
+    <string name="clear">Effacer</string>
+</resources>

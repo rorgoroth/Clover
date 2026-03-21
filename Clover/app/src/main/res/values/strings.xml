@@ -281,7 +281,7 @@ If the pattern matches then the post can be hidden, highlighted or watched.<br>
 <h4>For Watch post action:</h4>
 <p>This option will watch (or pin) a thread if it matches the filter.
 Triggers when the catalog refreshes and *only* works for Comment types of filters.
-If any ohter filters are enabled for it, it will not work.
+If any other filters are enabled for it, it will not work.
 </p>
 ]]>
     </string>
