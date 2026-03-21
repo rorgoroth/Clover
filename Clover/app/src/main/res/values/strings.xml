@@ -189,7 +189,7 @@ Re-enable this permission in the app settings if you permanently disabled it."</
     <string name="setup_sites_add_title">Add site</string>
     <string name="setup_sites_description">Add a site by its URL or name</string>
     <string name="setup_sites_url">URL or name</string>
-    <string name="setup_sites_url_hint">http://example.com</string>
+    <string name="setup_sites_url_hint" translatable="false">http://example.com</string>
     <string name="setup_sites_site_description">%s added</string>
     <string name="setup_sites_add_boards_hint">Tap to add boards</string>
 
@@ -199,7 +199,7 @@ Re-enable this permission in the app settings if you permanently disabled it."</
     <string name="setup_site_boards_description">%s added</string>
 
     <string name="setup_site_group_login">Authentication</string>
-    <string name="setup_site_group_login_4chan">4chan Pass</string>
+    <string name="setup_site_group_login_4chan" translatable="false">4chan Pass</string>
     <string name="setup_site_login">Login</string>
     <string name="setup_site_login_8chan">Verification</string>
     <string name="setup_site_login_description_enabled">Logged in</string>
@@ -289,7 +289,7 @@ If any ohter filters are enabled for it, it will not work.
     <string name="filter_tripcode">Tripcode</string>
     <string name="filter_name">Name</string>
     <string name="filter_comment">Comment</string>
-    <string name="filter_id">ID</string>
+    <string name="filter_id" translatable="false">ID</string>
     <string name="filter_subject">Subject</string>
     <string name="filter_filename">Filename</string>
     <string name="filter_country">Country name</string>
@@ -368,10 +368,10 @@ If any ohter filters are enabled for it, it will not work.
     <string name="reply_success_recover">Recover</string>
     <string name="reply_captcha_text">Type the text</string>
     <string name="reply_comment_button_quote" translatable="false">&gt;</string>
-    <string name="reply_comment_button_spoiler">[s]</string>
-    <string name="reply_comment_button_code">[c]</string>
-    <string name="reply_comment_button_math">[mt]</string>
-    <string name="reply_comment_button_eqn">[eq]</string>
+    <string name="reply_comment_button_spoiler" translatable="false">[s]</string>
+    <string name="reply_comment_button_code" translatable="false">[c]</string>
+    <string name="reply_comment_button_math" translatable="false">[mt]</string>
+    <string name="reply_comment_button_eqn" translatable="false">[eq]</string>
     <string name="reply_comment_button_redtext" translatable="false">[SRZ]</string>
     <string name="reply_comment_button_italic" translatable="false">[I]</string>
     <string name="reply_comment_button_bold" translatable="false">[B]</string>
@@ -787,7 +787,7 @@ Don't have a 4chan Pass?<br>
     <string name="delete_site_dialog_title" tools:ignore="MissingTranslation">Delete site?</string>
     <string name="delete_site_dialog_message" tools:ignore="MissingTranslation">Are you sure you want to delete "%1$s"? This action will delete the site and everything that is associated with it. The app will be restarted. Do you wish to proceed?</string>
     <string name="could_not_remove_site_error_message" tools:ignore="MissingTranslation">"Could not remove site %1$s, error message: %2$s</string>
-    <string name="_1x">1x</string>
+    <string name="_1x" translatable="false">1x</string>
     <string name="forward_15_seconds">Forward 15 seconds</string>
     <string name="rewind_5_seconds">Rewind 5 seconds</string>
     <string name="_play_pause">Play or pause the video</string>
