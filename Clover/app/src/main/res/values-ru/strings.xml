@@ -574,6 +574,8 @@
     <string name="setting_cookies_view_edit">Управлять cookies сайтов</string>
 
     <string name="setting_group_reset">Конфиденциальность &amp; данные</string>
+    <string name="setting_enable_localization">Включить локализацию</string>
+    <string name="setting_enable_localization_description">Английский</string>
     <string name="setting_confirm_clear_hides">Вы уверены, что хотите очистить все скрытые треды?</string>
     <string name="setting_confirm_clear_cookies">Это очистит все cookies сайтов. Вы уверены?</string>
 

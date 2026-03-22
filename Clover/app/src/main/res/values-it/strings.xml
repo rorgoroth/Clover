@@ -546,6 +546,8 @@ I report dei crash non raccolgono informazioni personali identificabili."
     <string name="setting_cookies_view_edit">Gestisci cookie del sito</string>
 
     <string name="setting_group_reset">Privacy &amp; dati</string>
+    <string name="setting_enable_localization">Attiva la localizzazione</string>
+    <string name="setting_enable_localization_description">Inglese</string>
     <string name="setting_confirm_clear_hides">Cancellare davvero tutti i thread nascosti?</string>
     <string name="setting_confirm_clear_cookies">Questo cancellerà tutti i cookie dei siti. Sei sicuro?</string>
 

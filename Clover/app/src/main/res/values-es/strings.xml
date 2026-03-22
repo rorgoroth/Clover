@@ -546,6 +546,8 @@ Los reportes de fallos no recopilan ninguna información de identificación pers
     <string name="setting_cookies_view_edit">Gestionar cookies del sitio</string>
 
     <string name="setting_group_reset">Privacidad &amp; datos</string>
+    <string name="setting_enable_localization">Activar localización</string>
+    <string name="setting_enable_localization_description">Inglés</string>
     <string name="setting_confirm_clear_hides">¿Borrar realmente todos los threads ocultos?</string>
     <string name="setting_confirm_clear_cookies">Esto borrará todas las cookies de los sitios. ¿Estás seguro?</string>
 

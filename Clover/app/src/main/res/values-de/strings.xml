@@ -546,6 +546,8 @@ Absturzberichte erfassen keine personenbezogenen Daten."
     <string name="setting_cookies_view_edit">Seiten-Cookies verwalten</string>
 
     <string name="setting_group_reset">Datenschutz &amp; Daten</string>
+    <string name="setting_enable_localization">Lokalisierung aktivieren</string>
+    <string name="setting_enable_localization_description">Englisch</string>
     <string name="setting_confirm_clear_hides">Möchtest du wirklich alle ausgeblendeten Threads löschen?</string>
     <string name="setting_confirm_clear_cookies">Dadurch werden alle Cookies der Seiten gelöscht. Bist du sicher?</string>
 

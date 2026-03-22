@@ -546,6 +546,8 @@ Os relatórios de falhas não coletam nenhuma informação pessoal identificáve
     <string name="setting_cookies_view_edit">Gerenciar cookies do site</string>
 
     <string name="setting_group_reset">Privacidade &amp; dados</string>
+    <string name="setting_enable_localization">Ativar localização</string>
+    <string name="setting_enable_localization_description">Inglês</string>
     <string name="setting_confirm_clear_hides">Tem certeza que deseja limpar todos os threads ocultos?</string>
     <string name="setting_confirm_clear_cookies">Isso irá limpar todos os cookies dos sites. Tem certeza?</string>
 
