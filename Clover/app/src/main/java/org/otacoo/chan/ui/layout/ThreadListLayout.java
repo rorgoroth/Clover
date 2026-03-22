@@ -24,6 +24,7 @@ import static org.otacoo.chan.utils.AndroidUtils.getDimen;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -495,6 +496,10 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
         openSearch(false);
         showingThread = null;
         lastPostCount = 0;
+        if (snackbarPaddingAnimator != null) {
+            snackbarPaddingAnimator.cancel();
+            snackbarPaddingAnimator = null;
+        }
         snackbarBottomPadding = 0;
         noParty();
     }
@@ -711,9 +716,32 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     // Extra bottom padding reserved for the "N new posts" Snackbar, so it never
     // overlaps thread content. Set/cleared by ThreadLayout via setSnackbarBottomPadding().
     private int snackbarBottomPadding = 0;
+    private ValueAnimator snackbarPaddingAnimator;
 
     public void setSnackbarBottomPadding(int pixels) {
-        if (snackbarBottomPadding != pixels) {
+        if (snackbarPaddingAnimator != null) {
+            snackbarPaddingAnimator.cancel();
+            snackbarPaddingAnimator = null;
+        }
+        if (pixels == 0 && snackbarBottomPadding > 0) {
+            // Animate the removal to prevent an abrupt layout jump after the
+            // Snackbar finishes its own exit animation.
+            int from = snackbarBottomPadding;
+            snackbarPaddingAnimator = ValueAnimator.ofInt(from, 0);
+            snackbarPaddingAnimator.setDuration(200);
+            snackbarPaddingAnimator.addUpdateListener(a -> {
+                snackbarBottomPadding = (int) a.getAnimatedValue();
+                setRecyclerViewPadding();
+            });
+            snackbarPaddingAnimator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    snackbarBottomPadding = 0;
+                    snackbarPaddingAnimator = null;
+                }
+            });
+            snackbarPaddingAnimator.start();
+        } else if (snackbarBottomPadding != pixels) {
             snackbarBottomPadding = pixels;
             setRecyclerViewPadding();
         }

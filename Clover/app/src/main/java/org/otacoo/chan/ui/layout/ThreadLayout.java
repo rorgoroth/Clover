@@ -665,6 +665,9 @@ public class ThreadLayout extends CoordinatorLayout implements
     @Override
     public void showNewPostsNotification(boolean show, int more) {
         if (show) {
+            if (newPostsNotification != null) {
+                return;
+            }
             if (!threadListLayout.scrolledToBottom()) {
                 String text = getContext().getResources()
                         .getQuantityString(R.plurals.thread_new_posts, more, more);
@@ -683,7 +686,8 @@ public class ThreadLayout extends CoordinatorLayout implements
                         threadListLayout.setSnackbarBottomPadding(sb.getView().getHeight());
                     }
                     @Override
-                    public void onDismissed(Snackbar snackbar, int event) {
+                    public void onDismissed(Snackbar sb, int event) {
+                        newPostsNotification = null;
                         threadListLayout.setSnackbarBottomPadding(0);
                     }
                 });
