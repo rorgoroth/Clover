@@ -114,6 +114,7 @@ public class WatchManager {
     public static final int DEFAULT_BACKGROUND_INTERVAL = 15 * 60 * 1000;
 
     private static final long FOREGROUND_INTERVAL = 15 * 1000;
+    private static final long FOREGROUND_INITIAL_DELAY = 1 * 1000;
     private static final int MESSAGE_UPDATE = 1;
     private static final int REQUEST_CODE_WATCH_UPDATE = 2;
     private static final String WATCHER_UPDATE_ACTION = getAppContext().getPackageName() + ".intent.action.WATCHER_UPDATE";
@@ -552,8 +553,9 @@ public class WatchManager {
 
             switch (currentInterval) {
                 case FOREGROUND:
-                    // Schedule a delayed handler that will call update(false)
-                    handler.sendMessageDelayed(handler.obtainMessage(MESSAGE_UPDATE), FOREGROUND_INTERVAL);
+                    // Schedule a short initial delay so bookmarks update faster on app start,
+                    // then the regular FOREGROUND_INTERVAL takes over for subsequent ticks.
+                    handler.sendMessageDelayed(handler.obtainMessage(MESSAGE_UPDATE), FOREGROUND_INITIAL_DELAY);
                     break;
                 case BACKGROUND:
                     // Schedule an intervaled broadcast receiver
