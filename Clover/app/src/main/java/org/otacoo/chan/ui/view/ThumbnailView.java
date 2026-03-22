@@ -139,9 +139,19 @@ public class ThumbnailView extends View {
 
     public void setUrl(String url, int width, int height) {
         if (TextUtils.equals(currentUrl, url)) {
-            // Skip only if the bitmap is already displayed or a request is in flight.
-            if (bitmap != null || currentCall != null) {
+            if (bitmap != null) {
+                return; // Already displaying the correct bitmap.
+            }
+            Bitmap cachedNow = getCachedBitmap(url);
+            if (cachedNow != null) {
+                cancelRequest();
+                error = false;
+                setImageBitmap(cachedNow);
+                onImageSet();
                 return;
+            }
+            if (currentCall != null) {
+                return; // In-flight request will complete; let it finish.
             }
             error = false;
         } else {

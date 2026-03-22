@@ -88,7 +88,6 @@ public class PostCell extends LinearLayout implements PostCellInterface {
     private static final int COMMENT_MAX_LENGTH_BOARD = 350;
 
     private List<PostImageThumbnailView> thumbnailViews = new ArrayList<>(1);
-    private int lastThumbnailId = 0;
 
     private RelativeLayout relativeLayoutContainer;
     private RelativeLayout relativeLayoutHelper;
@@ -397,7 +396,18 @@ public class PostCell extends LinearLayout implements PostCellInterface {
         }
 
         buildThumbnails();
-        lastThumbnailId = thumbnailViews.isEmpty() ? 0 : thumbnailViews.get(thumbnailViews.size() - 1).getId();
+
+        // Align the replies row with the text column.
+        // layout_toRightOf the thumbnail; replicate that indent via leftMargin instead.
+        RelativeLayout.LayoutParams repliesLp = (RelativeLayout.LayoutParams) replies.getLayoutParams();
+        if (!thumbnailViews.isEmpty()) {
+            int thumbSize = ChanSettings.thumbnailScale.get() * getResources()
+                    .getDimensionPixelSize(R.dimen.cell_post_thumbnail_size) / 100;
+            repliesLp.leftMargin = paddingPx + thumbSize;
+        } else {
+            repliesLp.leftMargin = 0;
+        }
+        replies.setLayoutParams(repliesLp);
 
         SpannableStringBuilder titleBuilder = new SpannableStringBuilder();
 
@@ -567,16 +577,6 @@ public class PostCell extends LinearLayout implements PostCellInterface {
         synchronized (post.repliesFrom) {
             repliesFromSize = post.repliesFrom.size();
         }
-
-        // For multi-image posts, anchor replies below the last thumbnail so it doesn't appear
-        // mid-stack. For single-image or no-image posts, keep it directly below the comment text.
-        RelativeLayout.LayoutParams repliesLp = (RelativeLayout.LayoutParams) replies.getLayoutParams();
-        if (lastThumbnailId != 0 && thumbnailViews.size() > 1) {
-            repliesLp.addRule(RelativeLayout.BELOW, lastThumbnailId);
-        } else {
-            repliesLp.addRule(RelativeLayout.BELOW, R.id.comment);
-        }
-        replies.setLayoutParams(repliesLp);
 
         if ((!threadMode && post.getReplies() > 0) || (repliesFromSize > 0)) {
             replies.setVisibility(View.VISIBLE);
