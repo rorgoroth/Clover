@@ -54,7 +54,6 @@ import org.otacoo.chan.core.site.Site;
 import org.otacoo.chan.core.site.SiteResolver;
 import org.otacoo.chan.core.site.SiteService;
 import org.otacoo.chan.ui.controller.BrowseController;
-import org.otacoo.chan.ui.controller.DoubleNavigationController;
 import org.otacoo.chan.ui.controller.DrawerController;
 import org.otacoo.chan.ui.controller.SplitNavigationController;
 import org.otacoo.chan.ui.controller.StyledToolbarNavigationController;
@@ -251,7 +250,6 @@ public class StartActivity extends AppCompatActivity implements
         return handled;
     }
 
-    @SuppressWarnings("deprecation")
     private boolean restoreFromSavedState(Bundle savedInstanceState) {
         boolean handled = false;
 
@@ -260,7 +258,6 @@ public class StartActivity extends AppCompatActivity implements
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             chanState = savedInstanceState.getParcelable(STATE_KEY, ChanState.class);
         } else {
-            //noinspection deprecation
             chanState = savedInstanceState.getParcelable(STATE_KEY);
         }
 
@@ -408,10 +405,8 @@ public class StartActivity extends AppCompatActivity implements
         } else {
             Loadable thread = null;
 
-            if (drawerController.childControllers.get(0) instanceof SplitNavigationController) {
-                SplitNavigationController doubleNav = (SplitNavigationController) drawerController.childControllers.get(0);
-                if (doubleNav.getRightController() instanceof NavigationController) {
-                    NavigationController rightNavigationController = (NavigationController) doubleNav.getRightController();
+            if (drawerController.childControllers.get(0) instanceof SplitNavigationController doubleNav) {
+                if (doubleNav.getRightController() instanceof NavigationController rightNavigationController) {
                     for (Controller controller : rightNavigationController.childControllers) {
                         if (controller instanceof ViewThreadController) {
                             thread = ((ViewThreadController) controller).getLoadable();
@@ -426,8 +421,7 @@ public class StartActivity extends AppCompatActivity implements
                     if (controller instanceof ViewThreadController) {
                         thread = ((ViewThreadController) controller).getLoadable();
                         break;
-                    } else if (controller instanceof ThreadSlideController) {
-                        ThreadSlideController slideNav = (ThreadSlideController) controller;
+                    } else if (controller instanceof ThreadSlideController slideNav) {
                         if (slideNav.getRightController() instanceof ViewThreadController) {
                             thread = ((ViewThreadController) slideNav.getRightController()).getLoadable();
                             break;
