@@ -117,10 +117,18 @@ public class DefaultPostParser implements PostParser {
         int detailsSizePx = sp(Integer.parseInt(ChanSettings.fontSize.get()) - 4);
 
         if (!TextUtils.isEmpty(builder.subject)) {
-            subjectSpan = new SpannableString(builder.subject);
-            // Do not set another color when the post is in stub mode, it sets text_color_secondary
+            // 8chan: a subject of exactly "s" marks a spoiler post.
+            // Display it as a bold red "SPOILER" label instead of the bare letter.
+            boolean is8chan = builder.board != null && builder.board.site instanceof org.otacoo.chan.core.site.sites.chan8.Chan8;
+            boolean isSpoilerSubject = is8chan && builder.subject.trim().equalsIgnoreCase("s");
+            String displaySubject = isSpoilerSubject ? "SPOILER" : builder.subject;
+            subjectSpan = new SpannableString(displaySubject);
             if (!builder.filterStub) {
-                subjectSpan.setSpan(new ForegroundColorSpanHashed(theme.subjectColor), 0, subjectSpan.length(), 0);
+                int subjectColor = isSpoilerSubject ? 0xffcc0000 : theme.subjectColor;
+                subjectSpan.setSpan(new ForegroundColorSpanHashed(subjectColor), 0, subjectSpan.length(), 0);
+                if (isSpoilerSubject) {
+                    subjectSpan.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, subjectSpan.length(), 0);
+                }
             }
         }
 
