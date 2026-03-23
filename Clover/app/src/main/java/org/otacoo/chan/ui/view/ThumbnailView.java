@@ -44,6 +44,7 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 
 import org.otacoo.chan.R;
+import org.otacoo.chan.core.site.sites.chan8.Chan8RateLimit;
 import org.otacoo.chan.utils.AndroidUtils;
 
 import java.io.IOException;
@@ -58,6 +59,33 @@ import okhttp3.ResponseBody;
 public class ThumbnailView extends View {
     private static final String TAG = "ThumbnailView";
     private static final LruCache<String, Bitmap> sMemoryCache;
+
+    /**
+     * Separate OkHttpClient for 8chan /.media/ thumbnail requests.
+     * Its dispatcher is capped at 2 concurrent requests per host so that scrolling
+     * through image-heavy threads does not fire 20+ simultaneous hits and trigger 429s.
+     * All interceptors (including Chan8PowInterceptor) are inherited from the base client.
+     */
+    @Nullable
+    private static volatile OkHttpClient sChan8MediaClient = null;
+
+    private static OkHttpClient getChan8MediaClient() {
+        if (sChan8MediaClient == null) {
+            synchronized (ThumbnailView.class) {
+                if (sChan8MediaClient == null) {
+                    OkHttpClient base = injector().instance(OkHttpClient.class);
+                    okhttp3.Dispatcher dispatcher = new okhttp3.Dispatcher();
+                    // Allow at most 2 simultaneous 8chan media downloads.
+                    // OkHttp queues the rest automatically.
+                    dispatcher.setMaxRequestsPerHost(2);
+                    sChan8MediaClient = base.newBuilder()
+                            .dispatcher(dispatcher)
+                            .build();
+                }
+            }
+        }
+        return sChan8MediaClient;
+    }
 
     static {
         final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
@@ -172,7 +200,10 @@ public class ThumbnailView extends View {
             return;
         }
 
-        OkHttpClient client = injector().instance(OkHttpClient.class);
+        // Use a concurrency-limited client for 8chan media to avoid rate-limit bursts.
+        OkHttpClient client = Chan8RateLimit.isMedia(url)
+                ? getChan8MediaClient()
+                : injector().instance(OkHttpClient.class);
         Request request = new Request.Builder()
                 .url(url)
                 .build();
