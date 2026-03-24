@@ -84,6 +84,24 @@ public class Chan4CookieStore {
         return !passId.get().isEmpty() || !chanPass.get().isEmpty();
     }
 
+    // Returns true if pass_id (non-zero) or pass_enabled=1 is present in the WebView cookie store.
+    public boolean isPassInWebViewCookies() {
+        CookieManager cm = CookieManager.getInstance();
+        for (String domain : PASS_DOMAINS) {
+            String cookies = cm.getCookie(domain);
+            if (cookies == null) continue;
+            for (String part : cookies.split(";")) {
+                String trimmed = part.trim();
+                if (trimmed.equals("pass_enabled=1")) return true;
+                if (trimmed.startsWith("pass_id=")) {
+                    String val = trimmed.substring("pass_id=".length()).trim();
+                    if (!val.isEmpty() && !val.equals("0")) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     // Sets a new pass_id value, persists to SharedPrefs, and immediately propagates to the
     // WebView store so subsequent WebView-based captcha loads recognise the device.
     // Passing an empty string (logout) expires pass_id and pass_enabled in the WebView.

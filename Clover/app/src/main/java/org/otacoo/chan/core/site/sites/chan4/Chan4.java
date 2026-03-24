@@ -464,7 +464,7 @@ public class Chan4 extends SiteBase {
         public boolean isLoggedIn() {
             // Reflects the paid 4chan Pass (pass_id) only.
             // 4chan_pass (email verification) is independent and does not count as "logged in".
-            return !cookieStore.getPassId().get().isEmpty();
+            return !cookieStore.getPassId().get().isEmpty() || cookieStore.isPassInWebViewCookies();
         }
         @Override
         public LoginRequest getLoginDetails() {
