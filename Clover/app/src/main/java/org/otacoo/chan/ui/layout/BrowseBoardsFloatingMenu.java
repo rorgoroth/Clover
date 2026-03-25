@@ -400,8 +400,9 @@ public class BrowseBoardsFloatingMenu extends FrameLayout implements BoardsMenuP
         public boolean onKey(View v, int keyCode, KeyEvent event) {
             if (keyCode == KeyEvent.KEYCODE_BACK) {
                 dismiss();
+                return true;
             }
-            return true;
+            return false;
         }
     }
 
