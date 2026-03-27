@@ -112,26 +112,6 @@ public class MediaSettingsController extends SettingsController implements
         saveLocation.setDescription(description);
     }
 
-    @Override
-    public void showPathDialog(String path) {
-        FrameLayout container = new FrameLayout(context);
-        EditText dialogView = new EditText(context);
-        dialogView.setText(path);
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT
-        );
-        lp.leftMargin = lp.rightMargin = dp(20);
-        container.addView(dialogView, lp);
-        new AlertDialog.Builder(context)
-                .setTitle(R.string.save_location_screen)
-                .setView(container)
-                .setNegativeButton(R.string.cancel, null)
-                .setPositiveButton(R.string.ok, (dialog, which) -> {
-                    presenter.saveLocationEntered(dialogView.getText().toString());
-                })
-                .show();
-    }
-
     private void populatePreferences() {
         // Media group
         {
@@ -291,20 +271,9 @@ public class MediaSettingsController extends SettingsController implements
     }
 
     private void setupSaveLocationSetting(SettingsGroup media) {
-        // Register a normal click listener and a long click listener that sets the
-        // force file option to true.
         saveLocation = (LinkSettingView) media.add(new LinkSettingView(this,
                 R.string.save_location_screen, 0,
-                v -> presenter.saveLocationClicked(false)) {
-            @Override
-            public void setView(View view) {
-                super.setView(view);
-                view.setOnLongClickListener(v -> {
-                    presenter.saveLocationClicked(true);
-                    return true;
-                });
-            }
-        });
+                v -> presenter.saveLocationClicked()));
     }
 
     private List<ListSettingView.Item<?>> createDestinationFolderList() {

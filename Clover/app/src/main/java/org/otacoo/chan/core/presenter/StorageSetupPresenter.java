@@ -39,21 +39,10 @@ public class StorageSetupPresenter {
         updateDescription();
     }
 
-    public void saveLocationClicked(boolean forceFile) {
-        if (!forceFile && storage.mode() == Storage.Mode.STORAGE_ACCESS_FRAMEWORK) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) { // lint
-                storage.startOpenTreeIntentAndHandle(() -> {
-                    updateDescription();
-                });
-            }
-        } else {
-            String fileSaveLocation = storage.getFileSaveLocation();
-            callback.showPathDialog(fileSaveLocation);
-        }
-    }
-
-    public void saveLocationEntered(String input) {
-        storage.setFileSaveLocation(input);
+    public void saveLocationClicked() {
+        storage.startOpenTreeIntentAndHandle(() -> {
+            updateDescription();
+        });
     }
 
     private void updateDescription() {
@@ -63,7 +52,5 @@ public class StorageSetupPresenter {
 
     public interface Callback {
         void setSaveLocationDescription(String description);
-
-        void showPathDialog(String path);
     }
 }
