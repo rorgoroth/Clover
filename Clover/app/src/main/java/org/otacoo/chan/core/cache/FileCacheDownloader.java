@@ -285,7 +285,7 @@ public class FileCacheDownloader implements Runnable {
 
         long read;
         long total = 0;
-        long notifyTotal = 0;
+        long lastNotifyTime = System.currentTimeMillis();
 
         Buffer buffer = new Buffer();
 
@@ -293,12 +293,20 @@ public class FileCacheDownloader implements Runnable {
             sink.write(buffer, read);
             total += read;
 
-            if (total >= notifyTotal + NOTIFY_SIZE) {
-                notifyTotal = total;
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - lastNotifyTime >= 100) {
+                lastNotifyTime = currentTime;
                 postProgress(total, contentLength <= 0 ? total : contentLength);
             }
 
             checkCancel();
+        }
+
+        // Always post 100% progress when finished
+        if (contentLength > 0) {
+            postProgress(total, contentLength);
+        } else {
+            postProgress(total, total);
         }
 
         IOUtils.closeQuietly(source);
