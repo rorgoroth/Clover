@@ -17,19 +17,14 @@
  */
 package org.otacoo.chan.core.storage;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
-import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.util.Pair;
-
-import androidx.annotation.RequiresApi;
 
 import org.otacoo.chan.core.settings.ChanSettings;
 import org.otacoo.chan.core.settings.StringSetting;
@@ -37,7 +32,6 @@ import org.otacoo.chan.ui.activity.ActivityResultHelper;
 import org.otacoo.chan.utils.IOUtils;
 import org.otacoo.chan.utils.Logger;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,12 +48,7 @@ import javax.inject.Singleton;
  * different semantics in different Android APIs.
  * <p>
  * This is used primarily for saving images, especially on removable storage.
- * <p>
- * First, a good read:
- * https://commonsware.com/blog/2019/10/06/storage-situation-internal-storage.html
- * https://commonsware.com/blog/2019/10/08/storage-situation-external-storage.html
- * https://commonsware.com/blog/2019/10/11/storage-situation-removable-storage.html
- * <p>
+ *
  * The Android Storage Access Framework is used from Android 5.0 and higher. Since Android 5.0
  * it has support for granting permissions for a directory, which we want to save our files to.
  * <p>
@@ -74,26 +63,6 @@ public class Storage {
     private static final Pattern REPEATED_UNDERSCORES_PATTERN = Pattern.compile("_+");
     private static final Pattern SAFE_CHARACTERS_PATTERN = Pattern.compile("[^a-zA-Z0-9._]");
     private static final int MAX_RENAME_TRIES = 500;
-
-    /**
-     * The current mode of the Storage.
-     */
-    public enum Mode {
-        /**
-         * File mode is used on devices under Lollipop, or by default when the user hasn't changed
-         * the save locaton yet.
-         * <p>
-         * Uses the File api for internal/external storage.
-         */
-        FILE,
-
-        /**
-         * Used on lollipop and higher.
-         * <p>
-         * Uses the Android Storage Access Framework for internal, external and removable storage.
-         */
-        STORAGE_ACCESS_FRAMEWORK
-    }
 
     private Context applicationContext;
     private ActivityResultHelper results;
@@ -121,45 +90,15 @@ public class Storage {
         saveLocationTreeUri = ChanSettings.saveLocationTreeUri;
     }
 
-    /**
-     * The mode of storage changes depending on the api level.
-     */
-    public Mode mode() {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ?
-                Mode.FILE : Mode.STORAGE_ACCESS_FRAMEWORK;
-    }
-
-    // Settings controller:
-    public String getFileSaveLocation() {
-        prepareDefaultFileSaveLocation();
-        return saveLocation.get();
-    }
-
-    // Settings controller:
-    public void setFileSaveLocation(String location) {
-        saveLocation.set(location);
-        saveLocationTreeUri.set("");
-    }
-
     // Settings controller:
     public String currentStorageName() {
-        switch (mode()) {
-            case FILE: {
-                return saveLocation.get();
-            }
-            case STORAGE_ACCESS_FRAMEWORK: {
-                String uriString = saveLocationTreeUri.get();
-                if (uriString == null || uriString.isEmpty()) {
-                    return saveLocation.get();
-                }
-                Uri treeUri = Uri.parse(uriString);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) { // lint
-                    String name = queryTreeName(treeUri);
-                    return name != null ? name : saveLocation.get();
-                }
-            }
+        String uriString = saveLocationTreeUri.get();
+        if (uriString == null || uriString.isEmpty()) {
+            return saveLocation.get();
         }
-        throw new IllegalStateException();
+        Uri treeUri = Uri.parse(uriString);
+        String name = queryTreeName(treeUri);
+        return name != null ? name : saveLocation.get();
     }
 
     // For the settings controller:
@@ -172,7 +111,6 @@ public class Storage {
      *
      * @param handled called if it was picked and persisted.
      */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public void startOpenTreeIntentAndHandle(StoragePreparedCallback handled) {
         Intent openTreeIntent = getOpenTreeIntent();
         results.getResultFromIntent(openTreeIntent, (resultCode, result) -> {
@@ -188,60 +126,45 @@ public class Storage {
         });
     }
 
-    // When using FILE mode, create the directory.
-    private void prepareDefaultFileSaveLocation() {
-        if (saveLocation.get().isEmpty()) {
-            File pictures = Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_PICTURES);
-            File directory = new File(pictures, DEFAULT_DIRECTORY_NAME);
-            String absolutePath = directory.getAbsolutePath();
-            saveLocation.set(absolutePath);
+    public void prepareForSave(String[] folders, StoragePreparedCallback callback) {
+        if (saveLocationTreeUri.get().isEmpty() || !hasPermission(saveLocationTreeUri.get())) {
+            startOpenTreeIntentAndHandle(callback::onPrepared);
+        } else {
+            callback.onPrepared();
         }
     }
 
-    public void prepareForSave(String[] folders, StoragePreparedCallback callback) {
-        if (mode() == Mode.FILE) {
-            prepareDefaultFileSaveLocation();
-            callback.onPrepared();
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (folders == null || folders.length == 0) {
-                if (saveLocationTreeUri.get().isEmpty() || !hasPermission(saveLocationTreeUri.get())) {
-                    startOpenTreeIntentAndHandle(callback);
-                } else {
-                    callback.onPrepared();
-                }
-            } else {
-                saveLocationTreeUriFolder = null;
-                if (saveLocationTreeUri.get().isEmpty() || !hasPermission(saveLocationTreeUri.get())) {
-                    startOpenTreeIntentAndHandle(() -> {
-                        saveLocationTreeUriFolder = createDirectoryForSafUri(Uri.parse(saveLocationTreeUri.get()), folders);
-                        if (saveLocationTreeUriFolder == null) {
-                            throw new IllegalStateException("Failed to create subdir in normal dir for folder saving");
-                        }
-                        callback.onPrepared();
-                    });
-                } else {
-                    saveLocationTreeUriFolder = createDirectoryForSafUri(Uri.parse(saveLocationTreeUri.get()), folders);
-                    if (saveLocationTreeUriFolder == null) {
-                        throw new IllegalStateException("Failed to create subdir in normal dir for folder saving");
-                    }
-                    callback.onPrepared();
-                }
-            }
+    /**
+     * Creates the save sub-directory for {@code folders} via SAF and updates
+     * {@link #saveLocationTreeUriFolder} so that {@link #obtainStorageFileForName} can use it.
+     * <p><b>Must be called on a background thread</b> — it performs ContentProvider I/O
+     * ({@code listTree} and optionally {@code createDocument}).
+     *
+     * @return {@code true} on success, {@code false} if the directory could not be created.
+     */
+    public boolean prepareFolderInBackground(String[] folders) {
+        if (folders == null || folders.length == 0) {
+            saveLocationTreeUriFolder = null;
+            return true;
         }
+        saveLocationTreeUriFolder = createDirectoryForSafUri(
+                Uri.parse(saveLocationTreeUri.get()), folders);
+        return saveLocationTreeUriFolder != null;
     }
 
     private boolean hasPermission(String treeUri) {
-        try {
-            listTree(Uri.parse(treeUri));
-        } catch (SecurityException e) {
-            Logger.e(TAG, "No permission for the given uri", e);
-            return false;
+        Uri uri = Uri.parse(treeUri);
+        for (android.content.UriPermission perm :
+                applicationContext.getContentResolver().getPersistedUriPermissions()) {
+            if (perm.getUri().equals(uri)
+                    && perm.isReadPermission()
+                    && perm.isWritePermission()) {
+                return true;
+            }
         }
-        return true;
+        return false;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private Intent getOpenTreeIntent() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
         intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION |
@@ -251,7 +174,6 @@ public class Storage {
         return intent;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private String handleOpenTreeIntent(Intent intent) {
         boolean read = (intent.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0;
         boolean write = (intent.getFlags() & Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0;
@@ -281,10 +203,9 @@ public class Storage {
         int flags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION;
         contentResolver.takePersistableUriPermission(uri, flags);
 
-        return docUri.toString();
+        return uri.toString();
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private String createDirectoryForSafUri(Uri uri, String[] folders) {
         Uri subTree = null;
 
@@ -317,44 +238,6 @@ public class Storage {
         }
     }
 
-    public StorageFile obtainLegacyStorageFileForName(String[] folders, String name) {
-        File directory;
-        if (folders == null || folders.length == 0) {
-            directory = new File(ChanSettings.saveLocation.get());
-        } else {
-            StringBuilder sb = new StringBuilder();
-            for (String folder : folders) {
-                if (sb.length() > 0)
-                    sb.append(File.separator);
-                sb.append(folder);
-            }
-            directory = new File(ChanSettings.saveLocation.get(), sb.toString());
-        }
-
-        String base;
-        String extension;
-
-        String[] splitted = filterName(name).split("\\.(?=[^.]+$)");
-        if (splitted.length == 2) {
-            base = splitted[0];
-            extension = "." + splitted[1];
-        } else {
-            base = splitted[0];
-            extension = ".";
-        }
-
-        File test = new File(directory, base + extension);
-        int index = 0;
-        int tries = 0;
-        while (test.exists() && tries++ < MAX_RENAME_TRIES) {
-            test = new File(directory, base + "_" + index + extension);
-            index++;
-        }
-
-        return StorageFile.fromLegacyFile(test);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     public StorageFile obtainStorageFileForName(String[] folders, String name) {
         boolean hasSubfolder = (folders != null && folders.length > 0);
         String uriString = hasSubfolder ? saveLocationTreeUriFolder : saveLocationTreeUri.get();
@@ -420,13 +303,11 @@ public class Storage {
      * already rooted at that tree ({@code tree/X/document/Y}). {@code getTreeDocumentId} extracts
      * {@code X} from both formats, so this normalises the two representations.
      */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private static Uri rootDocUri(Uri treeOrDocUri) {
         return DocumentsContract.buildDocumentUriUsingTree(
                 treeOrDocUri, DocumentsContract.getTreeDocumentId(treeOrDocUri));
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private String queryTreeName(Uri treeUri) {
         ContentResolver contentResolver = applicationContext.getContentResolver();
 
@@ -457,7 +338,6 @@ public class Storage {
         return null;
     }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     private List<Pair<String, String>> listTree(Uri tree) {
         ContentResolver contentResolver = applicationContext.getContentResolver();
 
