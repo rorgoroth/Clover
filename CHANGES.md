@@ -1,3 +1,13 @@
+## 2026-03-27 – v3.3.14
+
+- Fix an issue with the boardlist drawer search function dismissing certain keyboard keys like numbers or delete
+- **4chan:** Fix an issue where 4chan cookies where being intercepted where they shouldn't preventing usage of *4chan pass*
+- Tentative fix for issue #13 again where unread count isn't properly reset when at the bottom of the thread, will now try to reset when the last post of the thread is in view, regardless of anything else
+- Refactor and remove a lot of deprecated Android code for how storage works
+- Improve the downloading and notification of media elements
+- Fix an issue where the *Save location* in the settings could get lost on app restart
+- Fix an issue where the new posts snackbar could get stuck forever if another snackbar was shown at the same time
+
 ## 2026-03-24 – v3.3.13
 
 - Use better detection for 4chan pass user's cookies
