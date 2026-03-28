@@ -216,7 +216,6 @@ public class FilterEngine {
                     synchronized (patternCache) {
                         patternCache.put(filter.pattern, pattern);
                     }
-                    Logger.d(TAG, "Resulting pattern: " + pattern.pattern());
                 }
             }
 
