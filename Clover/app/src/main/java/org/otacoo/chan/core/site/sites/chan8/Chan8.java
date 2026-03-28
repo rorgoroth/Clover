@@ -87,6 +87,8 @@ public class Chan8 extends CommonSite {
      * If the token has expired the interceptor will clear it and re-solve automatically.
      */
     private void restorePowCookies() {
+        if (boardManager.getSiteSavedBoards(this).isEmpty()) return;
+
         java.net.CookieManager cm = org.otacoo.chan.core.di.NetModule.getSharedCookieManager();
         if (cm == null) return;
 
