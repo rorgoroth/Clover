@@ -209,6 +209,22 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         return displayList;
     }
 
+    public void clearLastSeenIndicator() {
+        if (lastSeenIndicatorPosition >= 0) {
+            int oldPos = lastSeenIndicatorPosition;
+            lastSeenIndicatorPosition = -1;
+
+            RecyclerView.ItemAnimator animator = recyclerView.getItemAnimator();
+            if (animator != null) {
+                recyclerView.setItemAnimator(null);
+                notifyItemRemoved(oldPos);
+                recyclerView.post(() -> recyclerView.setItemAnimator(animator));
+            } else {
+                notifyItemRemoved(oldPos);
+            }
+        }
+    }
+
     public void cleanup() {
         highlightedPost = null;
         highlightedPostId = null;
