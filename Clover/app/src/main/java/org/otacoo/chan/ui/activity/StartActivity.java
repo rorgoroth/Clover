@@ -77,6 +77,15 @@ public class StartActivity extends AppCompatActivity implements
     private static final String STATE_KEY = "chan_state";
 
     private ViewGroup contentView;
+    private String cachedPackageName;
+
+    @Override
+    public String getPackageName() {
+        if (cachedPackageName == null) {
+            cachedPackageName = super.getPackageName();
+        }
+        return cachedPackageName;
+    }
     private final List<Controller> stack = new ArrayList<>();
 
     private DrawerController drawerController;

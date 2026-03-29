@@ -64,6 +64,16 @@ public class Chan extends Application implements
     @SuppressLint("StaticFieldLeak")
     private static Chan instance;
 
+    private String cachedPackageName;
+
+    @Override
+    public String getPackageName() {
+        if (cachedPackageName == null) {
+            cachedPackageName = super.getPackageName();
+        }
+        return cachedPackageName;
+    }
+
     private String userAgent;
     private int activityForegroundCounter = 0;
 
