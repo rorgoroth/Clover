@@ -58,12 +58,10 @@ public class Chan4CookieStore {
     };
 
     private final StringSetting passId;
-    private final StringSetting chanPass;
 
     public Chan4CookieStore() {
         SettingProvider p = new SharedPreferencesSettingProvider(AndroidUtils.getPreferences());
         passId = new StringSetting(p, "preference_pass_id", "");
-        chanPass = new StringSetting(p, "preference_4chan_pass_cookie", "");
     }
 
     // Returns the passId StringSetting for external callers that need direct access (e.g. login flow). */
@@ -71,9 +69,19 @@ public class Chan4CookieStore {
         return passId;
     }
 
-    // Returns the chanPass StringSetting for external callers (e.g. SiteSetupController). */
-    public StringSetting getChanPass() {
-        return chanPass;
+    // Returns the chanPass string value directly from CookieManager for external callers (e.g. SiteSetupController). */
+    public String getChanPass() {
+        CookieManager cm = CookieManager.getInstance();
+        String cookieHeader = cm.getCookie("https://sys.4chan.org");
+        if (cookieHeader == null) return "";
+        for (String part : cookieHeader.split(";\\s*")) {
+            int eq = part.indexOf('=');
+            if (eq < 0) continue;
+            if ("4chan_pass".equals(part.substring(0, eq).trim())) {
+                return part.substring(eq + 1).trim();
+            }
+        }
+        return "";
     }
 
     // Returns true if either pass token is present.
@@ -81,7 +89,7 @@ public class Chan4CookieStore {
     // both tokens should be injected. Do NOT use this to drive "Logged in" UI or
     // postRequiresAuthentication - use Chan4.actions.isLoggedIn() (pass_id only) for those.
     public boolean isPassAuthenticated() {
-        return !passId.get().isEmpty() || !chanPass.get().isEmpty();
+        return !passId.get().isEmpty() || !getChanPass().isEmpty();
     }
 
     // Returns true if pass_id (non-zero) or pass_enabled=1 is present in the WebView cookie store.
@@ -119,16 +127,14 @@ public class Chan4CookieStore {
         cm.flush();
     }
 
-    // Sets a new 4chan_pass value, persists to SharedPrefs, and immediately mirrors it to the
-    // WebView store for all 4chan domains.
+    // Sets a new 4chan_pass value directly to the WebView store for all 4chan domains.
     public void setChanPass(String value) {
-        chanPass.set(value);
         CookieManager cm = CookieManager.getInstance();
         if (value.isEmpty()) {
             String expired = "4chan_pass=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
             for (String domain : PASS_DOMAINS) cm.setCookie(domain, expired);
         } else {
-            String cookie = "4chan_pass=" + value + ";";
+            String cookie = "4chan_pass=" + value + "; expires=Fri, 31 Dec 2038 23:59:59 GMT; path=/";
             for (String domain : PASS_DOMAINS) cm.setCookie(domain, cookie);
         }
         cm.flush();
@@ -149,13 +155,6 @@ public class Chan4CookieStore {
             cm.setCookie("https://sys.4chan.org/", "pass_id=" + id + ";");
             cm.setCookie("https://boards.4chan.org/", "pass_enabled=1;");
             cm.setCookie("https://boards.4chan.org/", "pass_id=" + id + ";");
-            flushed = true;
-        }
-
-        String pass = chanPass.get();
-        if (!pass.isEmpty()) {
-            String cookie = "4chan_pass=" + pass + ";";
-            for (String domain : PASS_DOMAINS) cm.setCookie(domain, cookie);
             flushed = true;
         }
 
@@ -189,7 +188,7 @@ public class Chan4CookieStore {
                 parts.add("pass_id=" + id);
                 parts.add("pass_enabled=1");
             }
-            String pass = chanPass.get();
+            String pass = getChanPass();
             if (!pass.isEmpty()) {
                 parts.add("4chan_pass=" + pass);
             }
@@ -219,13 +218,6 @@ public class Chan4CookieStore {
             if (sysC == null || !sysC.contains("4chan_pass=")) {
                 expirePassSessionCookies(cm);
             }
-        }
-
-        // Always inject the persisted 4chan_pass
-        String pass = chanPass.get();
-        if (!pass.isEmpty()) {
-            String cookie = "4chan_pass=" + pass + ";";
-            for (String domain : PASS_DOMAINS) cm.setCookie(domain, cookie);
         }
 
         cm.flush();

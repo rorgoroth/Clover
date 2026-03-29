@@ -99,15 +99,8 @@ public class SiteSetupController extends SettingsController implements SiteSetup
         // other source and keeps the setting and the UI description in sync with THE truth.
         if (site != null && "4chan".equals(site.name()) && passCookieLink != null) {
             Chan4 chan4 = (Chan4) site;
-            android.webkit.CookieManager cm = android.webkit.CookieManager.getInstance();
-            String livePass = extractChanPassValue(cm.getCookie("https://sys.4chan.org"));
-            // Only copy WebView -> SharedPrefs if WebView has a value.
-            // An empty livePass means the WebView was cleared; must not wipe the stored token.
-            if (!livePass.isEmpty() && !livePass.equals(chan4.getCookieStore().getChanPass().get())) {
-                chan4.getCookieStore().setChanPass(livePass);
-            }
-            String storedPass = chan4.getCookieStore().getChanPass().get();
-            passCookieLink.setDescription(storedPass.isEmpty()
+            String currentPassCookie = chan4.getCookieStore().getChanPass();
+            passCookieLink.setDescription(currentPassCookie.isEmpty()
                     ? context.getString(R.string.setup_site_4chan_pass_cookie_not_set)
                     : context.getString(R.string.setup_site_4chan_pass_cookie_set));
         }
@@ -260,7 +253,7 @@ public class SiteSetupController extends SettingsController implements SiteSetup
             );
             verification.add(enterTokenLink);
 
-            String currentPassCookie = chan4site.getCookieStore().getChanPass().get();
+            String currentPassCookie = chan4site.getCookieStore().getChanPass();
             passCookieLink = new LinkSettingView(
                     this,
                     context.getString(R.string.setup_site_4chan_pass_cookie_name),
@@ -303,7 +296,7 @@ public class SiteSetupController extends SettingsController implements SiteSetup
     
     private void showPassCookieDialog() {
         Chan4 chan4 = (Chan4) site;
-        String currentValue = chan4.getCookieStore().getChanPass().get();
+        String currentValue = chan4.getCookieStore().getChanPass();
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setTitle(R.string.setup_site_4chan_pass_cookie_dialog_title);
