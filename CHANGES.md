@@ -1,3 +1,16 @@
+## 2026-03-30 – v3.3.15
+
+- Fixes for issue #13: [Thread watcher] Unread count doesn't decrease to 0 consistently
+  - Fix an "issue" where the thread watcher unread counter for a thread would update before the posts where shown/notified
+  - Fix an issue where posts where being wrongly counted as *read* on large screens
+  - Fix an issue where scrolling to the bottom in a thread wouldn't reset the unread counter properly
+  - Fix an issue where the snackbar wasn't being shown when switching between threads or entering a pinned thread
+  - The unread counter for a thread will now only show the number of posts that were not yet seen by the user, when coming from 0, e.g. thread updates with 5 new posts -> 3 posts are in view, 2 are off-screen -> unread count will only show 2 instead of 5
+  - Improve how the unread line reacts to changing threads and fetching new posts
+- **8chan:** Cookies will no longer be synced on startup if no boards for 8chan were added to the boardlist
+- **4chan:** Email verification cookie (4chan_pass) will no longer be backed up with the app's preferences; will still auto-sync if it exists in the cookie store/manager including from a cookie backup
+- Cache and quiet down some background logging
+
 ## 2026-03-27 – v3.3.14
 
 - Fix an issue with the boardlist drawer search function dismissing certain keyboard keys like numbers or delete
