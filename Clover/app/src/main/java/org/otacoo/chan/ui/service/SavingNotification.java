@@ -51,7 +51,6 @@ public class SavingNotification extends Service {
 
     private NotificationManager notificationManager;
 
-    private boolean inForeground = false;
     private int doneTasks;
     private int totalTasks;
     private long progress;
@@ -67,6 +66,12 @@ public class SavingNotification extends Service {
     public void onCreate() {
         super.onCreate();
         notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        // Must call startForeground() immediately
+        if (isOreo()) {
+            ensureChannels();
+        }
+        startForeground(NOTIFICATION_ID, getNotification());
     }
 
     @Override
@@ -89,16 +94,7 @@ public class SavingNotification extends Service {
                 progress = extras.getLong(PROGRESS_KEY, 0);
                 progressMax = extras.getLong(PROGRESS_MAX_KEY, 0);
 
-                if (isOreo()) {
-                    ensureChannels();
-                }
-
-                if (!inForeground) {
-                    startForeground(NOTIFICATION_ID, getNotification());
-                    inForeground = true;
-                } else {
-                    notificationManager.notify(NOTIFICATION_ID, getNotification());
-                }
+                notificationManager.notify(NOTIFICATION_ID, getNotification());
             }
         }
 
@@ -106,18 +102,23 @@ public class SavingNotification extends Service {
     }
 
     @TargetApi(Build.VERSION_CODES.O)
-    public void ensureChannels() {
+    public static void ensureChannelsStatic(NotificationManager nm) {
         NotificationChannel normalChannel = new NotificationChannel(
                 CHANNEL_ID_SAVING, "Save notifications",
                 NotificationManager.IMPORTANCE_HIGH);
         normalChannel.setDescription("Tasks complete");
-        notificationManager.createNotificationChannel(normalChannel);
-        
+        nm.createNotificationChannel(normalChannel);
+
         NotificationChannel progressChannel = new NotificationChannel(
                 CHANNEL_ID_PROGRESS, "Save progress",
                 NotificationManager.IMPORTANCE_LOW);
         progressChannel.setDescription("Current save tasks");
-        notificationManager.createNotificationChannel(progressChannel);
+        nm.createNotificationChannel(progressChannel);
+    }
+
+    @TargetApi(Build.VERSION_CODES.O)
+    public void ensureChannels() {
+        ensureChannelsStatic(notificationManager);
     }
 
     private Notification getNotification() {
