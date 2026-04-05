@@ -8,7 +8,7 @@
 
 - Fixes for issue #13: [Thread watcher] Unread count doesn't decrease to 0 consistently
   - Fix an "issue" where the thread watcher unread counter for a thread would update before the posts where shown/notified
-  - Fix an issue where posts where being wrongly counted as *read* on large screens
+  - Fix an issue where posts were being wrongly counted as *read* on large screens
   - Fix an issue where scrolling to the bottom in a thread wouldn't reset the unread counter properly
   - Fix an issue where the snackbar wasn't being shown when switching between threads or entering a pinned thread
   - The unread counter for a thread will now only show the number of posts that were not yet seen by the user, when coming from 0, e.g. thread updates with 5 new posts -> 3 posts are in view, 2 are off-screen -> unread count will only show 2 instead of 5
