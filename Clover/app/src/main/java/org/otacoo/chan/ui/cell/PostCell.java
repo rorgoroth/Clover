@@ -203,36 +203,12 @@ public class PostCell extends LinearLayout implements PostCellInterface {
         divider = findViewById(R.id.divider);
         filterMatchColor = findViewById(R.id.filter_match_color);
 
-        int textSizeSp = Integer.parseInt(ChanSettings.fontSize.get());
-        paddingPx = dp(textSizeSp - 7);
-        detailsSizePx = sp(textSizeSp - 4);
-        title.setTextSize(textSizeSp);
-        title.setPadding(paddingPx, paddingPx, dp(52), 0);
-
-        iconSizePx = sp(textSizeSp - 3);
-        icons.setHeight(sp(textSizeSp));
         icons.setSpacing(dp(4));
-        icons.setPadding(paddingPx, dp(4), paddingPx, 0);
 
-        comment.setTextSize(textSizeSp);
-        comment.setPadding(paddingPx, paddingPx, paddingPx, 0);
-
-        if (ChanSettings.fontCondensed.get()) {
-            title.setTypeface(ROBOTO_CONDENSED_REGULAR);
-            comment.setTypeface(ROBOTO_CONDENSED_REGULAR);
-            replies.setTypeface(ROBOTO_CONDENSED_REGULAR);
-        }
-
-        replies.setTextSize(textSizeSp);
-        replies.setPadding(paddingPx, 0, paddingPx, paddingPx);
+        applyFontSettings();
 
         setRoundItemBackground(replies);
         setRoundItemBackground(options);
-
-        RelativeLayout.LayoutParams dividerParams = (RelativeLayout.LayoutParams) divider.getLayoutParams();
-        dividerParams.leftMargin = paddingPx;
-        dividerParams.rightMargin = paddingPx;
-        divider.setLayoutParams(dividerParams);
 
         OnClickListener repliesClickListener = v -> {
             if (replies.getVisibility() != VISIBLE || !threadMode) {
@@ -364,8 +340,41 @@ public class PostCell extends LinearLayout implements PostCellInterface {
         return false;
     }
 
+    private void applyFontSettings() {
+        int textSizeSp = Integer.parseInt(ChanSettings.fontSize.get());
+        paddingPx = dp(textSizeSp - 7);
+        detailsSizePx = sp(textSizeSp - 4);
+        iconSizePx = sp(textSizeSp - 3);
+
+        title.setTextSize(textSizeSp);
+        title.setPadding(paddingPx, paddingPx, dp(52), 0);
+        icons.setHeight(sp(textSizeSp));
+        icons.setPadding(paddingPx, dp(4), paddingPx, 0);
+        comment.setTextSize(textSizeSp);
+        comment.setPadding(paddingPx, paddingPx, paddingPx, 0);
+        replies.setTextSize(textSizeSp);
+        replies.setPadding(paddingPx, 0, paddingPx, paddingPx);
+
+        if (ChanSettings.fontCondensed.get()) {
+            title.setTypeface(ROBOTO_CONDENSED_REGULAR);
+            comment.setTypeface(ROBOTO_CONDENSED_REGULAR);
+            replies.setTypeface(ROBOTO_CONDENSED_REGULAR);
+        } else {
+            title.setTypeface(null);
+            comment.setTypeface(Typeface.DEFAULT);
+            replies.setTypeface(null);
+        }
+
+        RelativeLayout.LayoutParams dividerParams = (RelativeLayout.LayoutParams) divider.getLayoutParams();
+        dividerParams.leftMargin = paddingPx;
+        dividerParams.rightMargin = paddingPx;
+        divider.setLayoutParams(dividerParams);
+    }
+
     private void bindPost(Theme theme, Post post) {
         bound = true;
+
+        applyFontSettings();
 
         threadMode = callback.getLoadable().isThreadMode();
 

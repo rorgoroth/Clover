@@ -24,6 +24,7 @@ import static org.otacoo.chan.utils.AndroidUtils.sp;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -179,10 +180,8 @@ public class CardPostCell extends CardView implements PostCellInterface, View.On
 
         bindPost(theme, post);
 
-        if (this.compact != compact) {
-            this.compact = compact;
-            setCompact(compact);
-        }
+        this.compact = compact;
+        setCompact(compact);
     }
 
     public Post getPost() {
@@ -277,6 +276,10 @@ public class CardPostCell extends CardView implements PostCellInterface, View.On
             title.setTypeface(ROBOTO_CONDENSED_REGULAR);
             comment.setTypeface(ROBOTO_CONDENSED_REGULAR);
             replies.setTypeface(ROBOTO_CONDENSED_REGULAR);
+        } else {
+            title.setTypeface(Typeface.DEFAULT);
+            comment.setTypeface(null);
+            replies.setTypeface(Typeface.DEFAULT);
         }
         comment.setTextSize(textSizeSp);
         replies.setTextSize(textSizeSp);

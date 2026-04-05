@@ -222,7 +222,7 @@ public class FastTextView extends View {
 //                    long start = Time.startTiming();
 
                     // The StaticLayouts are cached with the static textCache LRU map
-                    FastTextViewItem item = new FastTextViewItem(text, paint, layoutWidth);
+                    FastTextViewItem item = new FastTextViewItem(text, paint, layoutWidth, singleLine);
 
                     StaticLayout cached = textCache.get(item);
                     if (cached == null) {
@@ -250,12 +250,22 @@ public class FastTextView extends View {
     private StaticLayout getStaticLayout(int layoutWidth) {
 //        Logger.test("new staticlayout width=%d", layoutWidth);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return StaticLayout.Builder.obtain(text, 0, text.length(), paint, layoutWidth)
+            StaticLayout.Builder builder = StaticLayout.Builder.obtain(text, 0, text.length(), paint, layoutWidth)
                     .setAlignment(Layout.Alignment.ALIGN_NORMAL)
                     .setLineSpacing(0f, 1f)
-                    .setIncludePad(false)
-                    .build();
+                    .setIncludePad(false);
+            if (singleLine) {
+                builder.setMaxLines(1);
+                builder.setEllipsize(TextUtils.TruncateAt.END);
+            }
+            return builder.build();
         } else {
+            if (singleLine) {
+                //noinspection deprecation
+                return new StaticLayout(text, 0, text.length(), paint, layoutWidth,
+                        Layout.Alignment.ALIGN_NORMAL, 1f, 0f, false,
+                        TextUtils.TruncateAt.END, layoutWidth);
+            }
             //noinspection deprecation
             return new StaticLayout(text, paint, layoutWidth, Layout.Alignment.ALIGN_NORMAL, 1f, 0f, false);
         }
@@ -267,13 +277,15 @@ public class FastTextView extends View {
         private float textSize;
         private int layoutWidth;
         private Typeface typeface;
+        private boolean singleLine;
 
-        public FastTextViewItem(CharSequence text, TextPaint textPaint, int layoutWidth) {
+        public FastTextViewItem(CharSequence text, TextPaint textPaint, int layoutWidth, boolean singleLine) {
             this.text = text;
             color = textPaint.getColor();
             textSize = textPaint.getTextSize();
             this.layoutWidth = layoutWidth;
             typeface = textPaint.getTypeface();
+            this.singleLine = singleLine;
         }
 
         @Override
@@ -286,6 +298,7 @@ public class FastTextView extends View {
             if (color != that.color) return false;
             if (Float.compare(that.textSize, textSize) != 0) return false;
             if (layoutWidth != that.layoutWidth) return false;
+            if (singleLine != that.singleLine) return false;
             if (typeface != null ? !typeface.equals(that.typeface) : that.typeface != null) return false;
             return text.equals(that.text);
         }
@@ -297,6 +310,7 @@ public class FastTextView extends View {
             result = 31 * result + (textSize != +0.0f ? Float.floatToIntBits(textSize) : 0);
             result = 31 * result + layoutWidth;
             result = 31 * result + (typeface != null ? typeface.hashCode() : 0);
+            result = 31 * result + (singleLine ? 1 : 0);
             return result;
         }
     }
