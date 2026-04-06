@@ -186,6 +186,7 @@ dependencies {
     //noinspection NewerVersionAvailable
     implementation 'org.jsoup:jsoup:1.13.1'
     implementation 'pl.droidsonroids.gif:android-gif-drawable:1.2.31'
+    implementation 'com.github.penfeizhou.android.animation:apng:3.0.5'
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
     implementation 'de.greenrobot:eventbus:2.4.1'
     implementation 'org.nibor.autolink:autolink:0.12.0'

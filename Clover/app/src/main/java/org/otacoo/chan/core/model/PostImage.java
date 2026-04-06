@@ -23,7 +23,7 @@ import okhttp3.HttpUrl;
 
 public class PostImage {
     public enum Type {
-        STATIC, GIF, MOVIE, SWF
+        STATIC, GIF, ANIMATED, MOVIE, SWF
     }
 
     public final String originalName;
@@ -54,6 +54,9 @@ public class PostImage {
         switch (extension) {
             case "gif":
                 type = Type.GIF;
+                break;
+            case "apng":
+                type = Type.ANIMATED;
                 break;
             case "webm":
             case "mp4":

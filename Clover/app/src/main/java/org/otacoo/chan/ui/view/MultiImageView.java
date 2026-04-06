@@ -33,6 +33,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.PorterDuff;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -82,6 +83,8 @@ import org.otacoo.chan.utils.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -93,6 +96,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import com.github.penfeizhou.animation.apng.APNGDrawable;
+import com.github.penfeizhou.animation.loader.FileLoader;
+
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
@@ -259,6 +265,19 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         return gif;
     }
 
+    public ImageView findAnimatedImageView() {
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (child instanceof ImageView && !(child instanceof GifImageView)) {
+                ImageView iv = (ImageView) child;
+                if (iv != playView && iv.getDrawable() instanceof APNGDrawable) {
+                    return iv;
+                }
+            }
+        }
+        return null;
+    }
+
     @Override
     public void onPause(@NonNull LifecycleOwner owner) {
         if (exoPlayer != null) {
@@ -410,6 +429,11 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     }
 
     private void setBigImageFile(File file) {
+        // Intercept APNG files (often served with .png extension)
+        if (isApng(file)) {
+            setAnimatedImageFile(file, Mode.BIGIMAGE);
+            return;
+        }
         setBitImageFileInternal(file, true, Mode.BIGIMAGE);
     }
 
@@ -455,6 +479,32 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     }
 
     private void setGifFile(File file) {
+        if (postImage != null && postImage.type == PostImage.Type.ANIMATED) {
+            setAnimatedImageFile(file, Mode.GIF);
+        } else {
+            setGifDrawableFile(file);
+        }
+    }
+
+    // Decode an APNG file using the APNG4Android library
+    private void setAnimatedImageFile(File file, Mode fallbackMode) {
+        try {
+            APNGDrawable drawable = new APNGDrawable(
+                    new FileLoader(file.getAbsolutePath()));
+
+            ImageView view = new ImageView(getContext());
+            view.setImageDrawable(drawable);
+            view.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            onModeLoaded(Mode.GIF, view);
+            drawable.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+            boolean tiling = fallbackMode == Mode.BIGIMAGE;
+            setBitImageFileInternal(file, tiling, fallbackMode);
+        }
+    }
+
+    private void setGifDrawableFile(File file) {
         // Decode on a background thread, then post view creation back to main.
         new Thread(() -> {
             GifDrawable drawable;
@@ -916,17 +966,21 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     public void toggleTransparency() {
         CustomScaleImageView imageView = findScaleImageView();
         GifImageView gifView = findGifImageView();
-        if (imageView == null && gifView == null) return;
-        boolean isImage = imageView != null && gifView == null;
+        ImageView animatedView = findAnimatedImageView();
+        if (imageView == null && gifView == null && animatedView == null) return;
+        boolean isImage = imageView != null && gifView == null && animatedView == null;
         int backgroundColor = backgroundToggle ? Color.TRANSPARENT : BACKGROUND_COLOR;
         if (isImage) {
             imageView.setTileBackgroundColor(backgroundColor);
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                gifView.getDrawable().setColorFilter(new BlendModeColorFilter(backgroundColor, BlendMode.DST_OVER));
-            } else {
-                android.graphics.ColorFilter legacyFilter = new android.graphics.PorterDuffColorFilter(backgroundColor, PorterDuff.Mode.DST_OVER);
-                gifView.getDrawable().setColorFilter(legacyFilter);
+            ImageView targetView = gifView != null ? gifView : animatedView;
+            if (targetView != null && targetView.getDrawable() != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    targetView.getDrawable().setColorFilter(new BlendModeColorFilter(backgroundColor, BlendMode.DST_OVER));
+                } else {
+                    android.graphics.ColorFilter legacyFilter = new android.graphics.PorterDuffColorFilter(backgroundColor, PorterDuff.Mode.DST_OVER);
+                    targetView.getDrawable().setColorFilter(legacyFilter);
+                }
             }
         }
         backgroundToggle = !backgroundToggle;
@@ -935,8 +989,10 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     public void setOrientation(int orientation) {
         CustomScaleImageView imageView = findScaleImageView();
         GifImageView gifView = findGifImageView();
-        if (imageView == null && gifView == null) return;
-        boolean isImage = imageView != null && gifView == null;
+        ImageView animatedView = findAnimatedImageView();
+        ImageView targetAnimView = gifView != null ? gifView : animatedView;
+        if (imageView == null && targetAnimView == null) return;
+        boolean isImage = imageView != null && targetAnimView == null;
         if (isImage) {
             if (orientation < 0) {
                 if (orientation == -1) {
@@ -962,25 +1018,25 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                     imageView.setMaxScale(scale * 2f);
                 }
             }
-        } else if (gifView != null) {
+        } else if (targetAnimView != null) {
             if (orientation < 0) {
                 if (orientation == -1) {
-                    gifView.setScaleX(-1f);
-                    gifView.setScaleY(1f);
+                    targetAnimView.setScaleX(-1f);
+                    targetAnimView.setScaleY(1f);
                 } else {
-                    gifView.setScaleX(1f);
-                    gifView.setScaleY(-1f);
+                    targetAnimView.setScaleX(1f);
+                    targetAnimView.setScaleY(-1f);
                 }
             } else {
-                gifView.setScaleX(1f);
-                gifView.setScaleY(1f);
+                targetAnimView.setScaleX(1f);
+                targetAnimView.setScaleY(1f);
                 if (orientation == 0) {
-                    gifView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                    targetAnimView.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 } else {
-                    gifView.setScaleType(ImageView.ScaleType.MATRIX);
-                    int iw = gifView.getDrawable().getIntrinsicWidth();
-                    int ih = gifView.getDrawable().getIntrinsicHeight();
-                    RectF dstRect = new RectF(0, 0, gifView.getWidth(), gifView.getHeight());
+                    targetAnimView.setScaleType(ImageView.ScaleType.MATRIX);
+                    int iw = targetAnimView.getDrawable().getIntrinsicWidth();
+                    int ih = targetAnimView.getDrawable().getIntrinsicHeight();
+                    RectF dstRect = new RectF(0, 0, targetAnimView.getWidth(), targetAnimView.getHeight());
                     Matrix matrix = new Matrix();
                     if (orientation == 90 || orientation == 270) {
                         matrix.setRectToRect(new RectF(0, 0, ih, iw), dstRect, Matrix.ScaleToFit.CENTER);
@@ -990,10 +1046,33 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                     }
                     if (orientation >= 180)
                         matrix.preRotate(180f, (float) iw / 2, (float) ih / 2);
-                    gifView.setImageMatrix(matrix);
+                    targetAnimView.setImageMatrix(matrix);
                 }
             }
         }
+    }
+
+    // Detect APNG by finding an 'acTL' (animation control) chunk before the first 'IDAT' chunk
+    private static boolean isApng(File file) {
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            byte[] sig = new byte[8];
+            if (raf.read(sig) != 8) return false;
+            if (sig[0] != (byte) 0x89 || sig[1] != 'P' || sig[2] != 'N' || sig[3] != 'G'
+                    || sig[4] != '\r' || sig[5] != '\n' || sig[6] != 0x1A || sig[7] != '\n') {
+                return false;
+            }
+            byte[] chunkHeader = new byte[8];
+            while (raf.read(chunkHeader) == 8) {
+                int length = ((chunkHeader[0] & 0xFF) << 24) | ((chunkHeader[1] & 0xFF) << 16)
+                        | ((chunkHeader[2] & 0xFF) << 8) | (chunkHeader[3] & 0xFF);
+                String type = new String(chunkHeader, 4, 4, StandardCharsets.US_ASCII);
+                if ("acTL".equals(type)) return true;
+                if ("IDAT".equals(type)) return false;
+                raf.seek(raf.getFilePointer() + length + 4);
+            }
+        } catch (IOException ignored) {
+        }
+        return false;
     }
 
     private void setBitImageFileInternal(File file, boolean tiling, final Mode forMode) {
@@ -1073,6 +1152,11 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                 if (gif.getDrawable() instanceof GifDrawable) {
                     ((GifDrawable) gif.getDrawable()).stop();
                 }
+            } else if (child instanceof ImageView && child != playView) {
+                Drawable d = ((ImageView) child).getDrawable();
+                if (d instanceof APNGDrawable) {
+                    ((APNGDrawable) d).stop();
+                }
             }
         }
 
@@ -1085,6 +1169,11 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                 GifImageView gif = (GifImageView) view;
                 if (gif.getDrawable() instanceof GifDrawable) {
                     ((GifDrawable) gif.getDrawable()).recycle();
+                }
+            } else if (view instanceof ImageView) {
+                Drawable d = ((ImageView) view).getDrawable();
+                if (d instanceof APNGDrawable) {
+                    ((APNGDrawable) d).stop();
                 }
             }
             return;

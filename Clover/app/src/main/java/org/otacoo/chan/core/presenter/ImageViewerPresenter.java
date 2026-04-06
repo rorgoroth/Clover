@@ -226,7 +226,7 @@ public class ImageViewerPresenter implements MultiImageView.Callback, ViewPager.
         if (imageAutoLoad(postImage) && !postImage.spoiler) {
             if (postImage.type == PostImage.Type.STATIC) {
                 callback.setImageMode(postImage, MultiImageView.Mode.BIGIMAGE, true);
-            } else if (postImage.type == PostImage.Type.GIF) {
+            } else if (postImage.type == PostImage.Type.GIF || postImage.type == PostImage.Type.ANIMATED) {
                 callback.setImageMode(postImage, MultiImageView.Mode.GIF, true);
             } else if (postImage.type == PostImage.Type.MOVIE && videoAutoLoad(postImage)) {
                 callback.setImageMode(postImage, MultiImageView.Mode.MOVIE, true);
@@ -245,7 +245,7 @@ public class ImageViewerPresenter implements MultiImageView.Callback, ViewPager.
             PostImage next = images.get(selectedPosition + 1);
 
             boolean load = false;
-            if (next.type == PostImage.Type.STATIC || next.type == PostImage.Type.GIF) {
+            if (next.type == PostImage.Type.STATIC || next.type == PostImage.Type.GIF || next.type == PostImage.Type.ANIMATED) {
                 load = imageAutoLoad(next);
             } else if (next.type == PostImage.Type.MOVIE) {
                 load = videoAutoLoad(next);
@@ -303,7 +303,7 @@ public class ImageViewerPresenter implements MultiImageView.Callback, ViewPager.
                 MultiImageView.Mode currentMode = callback.getImageMode(postImage);
                 if (postImage.type == PostImage.Type.STATIC && currentMode != MultiImageView.Mode.BIGIMAGE) {
                     callback.setImageMode(postImage, MultiImageView.Mode.BIGIMAGE, true);
-                } else if (postImage.type == PostImage.Type.GIF && currentMode != MultiImageView.Mode.GIF) {
+                } else if ((postImage.type == PostImage.Type.GIF || postImage.type == PostImage.Type.ANIMATED) && currentMode != MultiImageView.Mode.GIF) {
                     callback.setImageMode(postImage, MultiImageView.Mode.GIF, true);
                 } else if (postImage.type == PostImage.Type.MOVIE && currentMode != MultiImageView.Mode.MOVIE) {
                     callback.setImageMode(postImage, MultiImageView.Mode.MOVIE, true);
