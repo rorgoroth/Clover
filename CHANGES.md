@@ -1,3 +1,15 @@
+## 2026-04-06 – v3.3.17
+
+>[!NOTE]
+>I suggest re-doing a backup of your settings from the newest Clover version to avoid issues when updating or restoring settings, especially if you use or created a custom theme.
+
+- **New feature:** Clover now supports APNG images
+- Fix a crash when *Alternate layout* was enabled
+- Fix an issue where the new posts snackbar was getting stuck forever
+- Fix an issue where certain Clover preferences, in particular for themes, were being serialized when creating a backup and could cause crashes or ghost themes
+- Add the following new color choices for custom themes: Greentext, Highlighted quotelink and Spoiler colors
+- *Condensed font* will now correctly apply to the catalog/index view as well as subject, post info and reply anchor
+
 ## 2026-03-31 – v3.3.16
 
 - Fix an issue where notifications for saving media failing to fire could make the app crash occasionally
