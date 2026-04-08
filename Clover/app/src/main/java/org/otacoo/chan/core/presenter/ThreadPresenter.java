@@ -98,6 +98,7 @@ public class ThreadPresenter implements
     private boolean historyAdded;
     private boolean ignoreLastViewedUpdates = false;
     private boolean inForeground = true;
+    private boolean suppressNextNewPostsNotification = false;
 
     @Inject
     public ThreadPresenter(WatchManager watchManager,
@@ -336,7 +337,11 @@ public class ThreadPresenter implements
             loadable.setLastLoaded(posts.get(posts.size() - 1).no);
 
             if (more > 0) {
-                threadPresenterCallback.showNewPostsNotification(true, more);
+                if (suppressNextNewPostsNotification) {
+                    suppressNextNewPostsNotification = false;
+                } else {
+                    threadPresenterCallback.showNewPostsNotification(true, more);
+                }
             }
         }
 
@@ -778,6 +783,8 @@ public class ThreadPresenter implements
     @Override
     public void requestNewPostLoad() {
         if (loadable != null && loadable.isThreadMode()) {
+            suppressNextNewPostsNotification = true;
+            threadPresenterCallback.showNewPostsNotification(false, -1);
             chanLoader.requestMoreDataAndResetTimer();
         }
     }

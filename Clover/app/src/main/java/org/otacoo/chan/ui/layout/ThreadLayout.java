@@ -846,7 +846,10 @@ public class ThreadLayout extends CoordinatorLayout implements
                         showSearch(false);
                         showReplyButton(false);
                         showTopBottomButtons(false, false);
-                        newPostsNotification = null;
+                        if (newPostsNotification != null) {
+                            newPostsNotification.dismiss();
+                            newPostsNotification = null;
+                        }
                         break;
                 }
             }
