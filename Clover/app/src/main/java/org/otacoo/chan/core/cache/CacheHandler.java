@@ -26,6 +26,7 @@ import androidx.annotation.WorkerThread;
 import org.otacoo.chan.utils.Logger;
 
 import java.io.File;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +37,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class CacheHandler {
     private static final String TAG = "CacheHandler";
-    private static final int TRIM_TRIES = 20;
 
     private final ExecutorService pool = Executors.newFixedThreadPool(1);
 
@@ -93,10 +93,13 @@ public class CacheHandler {
         Logger.d(TAG, "Clearing cache");
 
         if (directory.exists() && directory.isDirectory()) {
-            for (File file : directory.listFiles()) {
-                if (!file.delete()) {
-                    Logger.d(TAG, "Could not delete cache file while clearing cache " +
-                            file.getName());
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (!file.delete()) {
+                        Logger.d(TAG, "Could not delete cache file while clearing cache " +
+                                file.getName());
+                    }
                 }
             }
         }
@@ -151,18 +154,14 @@ public class CacheHandler {
         // Sort by oldest first.
         Collections.sort(files, (o1, o2) -> Long.signum(o1.second - o2.second));
 
-        // Trim as long as the directory size exceeds the threshold and we haven't reached
-        // the trim limit.
+        // Trim as long as the directory size exceeds the threshold.
         long workingSize = size.get();
-        for (int i = 0; workingSize >= maxSize && i < Math.min(files.size(), TRIM_TRIES); i++) {
+        for (int i = 0; workingSize >= maxSize && i < files.size(); i++) {
             File file = files.get(i).first;
 
-            Logger.d(TAG, "Delete for trim " + file.getAbsolutePath());
             workingSize -= file.length();
 
-            boolean deleteResult = file.delete();
-
-            if (!deleteResult) {
+            if (!file.delete()) {
                 Logger.e(TAG, "Failed to delete cache file for trim");
             }
         }
@@ -172,6 +171,17 @@ public class CacheHandler {
 
     @AnyThread
     private String hash(String key) {
-        return String.valueOf(key.hashCode());
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(key.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder(digest.length * 2);
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b & 0xff));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            // Should never happen since SHA-256 and UTF-8 are always available
+            return String.valueOf(key.hashCode());
+        }
     }
 }
