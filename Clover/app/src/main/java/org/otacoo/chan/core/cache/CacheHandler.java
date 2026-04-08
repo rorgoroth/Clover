@@ -169,19 +169,30 @@ public class CacheHandler {
         recalculateSize();
     }
 
+    private static final char[] HEX = "0123456789abcdef".toCharArray();
+
+    private static final ThreadLocal<MessageDigest> SHA256 = new ThreadLocal<MessageDigest>() {
+        @Override
+        protected MessageDigest initialValue() {
+            try {
+                return MessageDigest.getInstance("SHA-256");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    };
+
     @AnyThread
     private String hash(String key) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(key.getBytes("UTF-8"));
-            StringBuilder sb = new StringBuilder(digest.length * 2);
-            for (byte b : digest) {
-                sb.append(String.format("%02x", b & 0xff));
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            // Should never happen since SHA-256 and UTF-8 are always available
-            return String.valueOf(key.hashCode());
+        MessageDigest md = SHA256.get();
+        md.reset();
+        byte[] digest = md.digest(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        char[] hex = new char[digest.length * 2];
+        for (int i = 0; i < digest.length; i++) {
+            int v = digest[i] & 0xff;
+            hex[i * 2] = HEX[v >>> 4];
+            hex[i * 2 + 1] = HEX[v & 0x0f];
         }
+        return new String(hex);
     }
 }
