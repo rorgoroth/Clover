@@ -60,7 +60,7 @@ public class NetModule {
         android.webkit.CookieManager cm = android.webkit.CookieManager.getInstance();
         // Sync cookies for the exact URL.
         String raw = cm.getCookie(url);
-        Logger.i("NetModule", "doSyncCookie raw=" + raw + " for url=" + url);
+        // Logger.i("NetModule", "doSyncCookie raw=" + raw + " for url=" + url);
         syncRaw(url, raw);
         // Also try the root of the same host in case cookies are set with path=/ and
         // some devices only return them when queried at the root.
@@ -69,7 +69,7 @@ public class NetModule {
             if (uri.getPath() != null && !uri.getPath().equals("/") && !uri.getPath().isEmpty()) {
                 String root = uri.getScheme() + "://" + uri.getHost() + "/";
                 String rootRaw = cm.getCookie(root);
-                Logger.i("NetModule", "doSyncCookie raw=" + rootRaw + " for root=" + root);
+                // Logger.i("NetModule", "doSyncCookie raw=" + rootRaw + " for root=" + root);
                 syncRaw(root, rootRaw);
             }
         } catch (Exception ignored) {}
@@ -101,13 +101,13 @@ public class NetModule {
 
                 // 'inbound' is a transient POWBlock redirect cookie; forwarding it re-triggers the challenge.
                 if (name.equals("inbound")) {
-                    Logger.i("NetModule", "skipping transient cookie '" + name + "' for " + host);
+                    //Logger.i("NetModule", "skipping transient cookie '" + name + "' for " + host);
                     continue;
                 }
 
                 // captcha cookies are managed by OkHttp; skip the stale WebView copy.
                 if (name.equals("captchaid") || name.equals("captchaexpiration")) {
-                    Logger.d("NetModule", "skipping captcha session cookie '" + name + "' for " + host);
+                    // Logger.d("NetModule", "skipping captcha session cookie '" + name + "' for " + host);
                     continue;
                 }
 

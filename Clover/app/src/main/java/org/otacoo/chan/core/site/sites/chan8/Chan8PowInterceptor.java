@@ -5,10 +5,12 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 import org.otacoo.chan.core.di.NetModule;
+import org.otacoo.chan.utils.Logger;
 
 import java.util.List;
 
 public class Chan8PowInterceptor implements Interceptor {
+    private static final String TAG = "Chan8PowInterceptor";
     private static final String POW_BYPASS_HEADER = "X-Clover-8chan-Bypass";
     private static volatile java.util.concurrent.CountDownLatch _latch = null;
     private static volatile okhttp3.OkHttpClient nonRedirectClient = null;
@@ -89,8 +91,7 @@ public class Chan8PowInterceptor implements Interceptor {
                 if (!newDomain.equals(host)) {
                     // The active domain changed — rewrite the URL and retry on the new domain.
                     String newUrl = req.url().toString().replace(host, newDomain);
-                    org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor",
-                            "IOException on " + host + "; retrying on " + newDomain);
+                    Logger.w(TAG, "IOException on " + host + "; retrying on " + newDomain);
                     Request retryReq = req.newBuilder().url(newUrl).build();
                     return chain.proceed(retryReq);
                 }
@@ -106,7 +107,7 @@ public class Chan8PowInterceptor implements Interceptor {
                 try { sleepMs = Long.parseLong(retryAfterHeader.trim()) * 1000L; } catch (NumberFormatException ignored) {}
             }
             sleepMs = Math.min(sleepMs, 30_000L);
-            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "429 rate-limited; sleeping " + sleepMs + "ms before retry");
+            Logger.w(TAG, "429 rate-limited; sleeping " + sleepMs + "ms before retry");
             Chan8PowNotifier.showRateLimit();
             resp.close();
             try { Thread.sleep(sleepMs); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
@@ -175,7 +176,7 @@ public class Chan8PowInterceptor implements Interceptor {
                 clearPowCookieStore(req.url().host());
                 html = fetchPowChallenge(req.url());
                 if (html == null) {
-                    org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "403 POW: could not retrieve fresh challenge");
+                    Logger.w(TAG, "403 POW: could not retrieve fresh challenge");
                     Chan8PowNotifier.onPowFailed();
                     return chain.proceed(req.newBuilder().header(POW_BYPASS_HEADER, "1").build());
                 }
@@ -188,13 +189,11 @@ public class Chan8PowInterceptor implements Interceptor {
                         "<pre\\s+id\\s*=\\s*['\"]?c['\"]?[^>]*>([^<]+)</pre>");
                 resp.close();
                 if (tokenCheck == null) {
-                    org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor",
-                            "200 HTML POW: no challenge token in body, fetching from captcha.js");
+                    // Logger.w(TAG, "200 HTML POW: no challenge token in body, fetching from captcha.js");
                     clearPowCookieStore(req.url().host());
                     html = fetchPowChallenge(req.url());
                     if (html == null) {
-                        org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor",
-                                "200 HTML POW: could not retrieve fresh challenge");
+                        Logger.w(TAG, "200 HTML POW: could not retrieve fresh challenge");
                         Chan8PowNotifier.onPowFailed();
                         return chain.proceed(req.newBuilder().header(POW_BYPASS_HEADER, "1").build());
                     }
@@ -206,7 +205,7 @@ public class Chan8PowInterceptor implements Interceptor {
             Integer difficulty = NetModule.extractPowDifficulty(html);
 
             if (token == null || difficulty == null) {
-                org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW required but challenge parse failed; user must Login via WebView");
+                Logger.w(TAG, "POW required but challenge parse failed; user must Login via WebView");
                 Chan8PowNotifier.onPowFailed();
                 if (is403Pow || is200HtmlPow) return chain.proceed(req.newBuilder().header(POW_BYPASS_HEADER, "1").build());
                 return resp;
@@ -215,13 +214,13 @@ public class Chan8PowInterceptor implements Interceptor {
             Chan8PowNotifier.onPowStarted();
 
             int algorithm = NetModule.extractPowAlgorithm(html);
-            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW algorithm=" + algorithm + " difficulty=" + difficulty);
+            // Logger.w(TAG, "POW algorithm=" + algorithm + " difficulty=" + difficulty);
             long t0 = System.currentTimeMillis();
             Chan8ProofOfWork solver = new Chan8ProofOfWork(token, difficulty, algorithm);
             Integer solution = solver.find();
             long elapsed = System.currentTimeMillis() - t0;
             if (solution == null) {
-                org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW solver failed after " + elapsed + "ms");
+                Logger.w(TAG, "POW solver failed after " + elapsed + "ms");
                 Chan8PowNotifier.onPowFailed();
                 if (is403Pow || is200HtmlPow) return chain.proceed(req.newBuilder().header(POW_BYPASS_HEADER, "1").build());
                 return resp;
@@ -232,7 +231,7 @@ public class Chan8PowInterceptor implements Interceptor {
             // – is403Pow or is200HtmlPow-fallback-via-captcha.js: /captcha.js
             String submitPath = useCaptchaJsSubmit ? "/captcha.js" : req.url().encodedPath();
             String submitUrl = req.url().scheme() + "://" + req.url().host() + submitPath + "?pow=" + solution + "&t=" + token;
-            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW submit URL: " + (submitUrl.length() > 120 ? submitUrl.substring(0, 120) + "…" : submitUrl));
+            // Logger.w(TAG, "POW submit URL: " + (submitUrl.length() > 120 ? submitUrl.substring(0, 120) + "…" : submitUrl));
 
             if (!is200HtmlPow) resp.close(); // already closed for 200 HTML inside the block above
             // Clear stale POW cookies (e.g. from a restored backup) before submitting the
@@ -248,7 +247,7 @@ public class Chan8PowInterceptor implements Interceptor {
 
             Response submitResp = getNonRedirectClient().newCall(submitReq).execute();
             int submitCode = submitResp.code();
-            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW submit response: code=" + submitCode);
+            // Logger.w(TAG, "POW submit response: code=" + submitCode);
             // If we get rate-limited on the POW submission, abandon and return the original 403/required response.
             if (submitCode == 429) {
                 submitResp.close();
@@ -265,14 +264,14 @@ public class Chan8PowInterceptor implements Interceptor {
             }
 
             List<String> setCookies = submitResp.headers("Set-Cookie");
-            if (!setCookies.isEmpty()) {
-                org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW submit Set-Cookie count=" + setCookies.size());
-            }
+            // if (!setCookies.isEmpty()) {
+            //     Logger.w(TAG, "POW submit Set-Cookie count=" + setCookies.size());
+            // }
             String completeStatus = submitResp.header("X-PoWBlock-Status");
             if (completeStatus == null) completeStatus = submitResp.header("X-PoW-Status");
-            if (completeStatus != null && !completeStatus.equalsIgnoreCase("complete")) {
-                org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "POW submit 302 missing X-PoWBlock-Status: complete (got: " + completeStatus + ")");
-            }
+            // if (completeStatus != null && !completeStatus.equalsIgnoreCase("complete")) {
+            //     Logger.w(TAG, "POW submit 302 missing X-PoWBlock-Status: complete (got: " + completeStatus + ")");
+            // }
             submitResp.close();
 
             // Persist POW_TOKEN/POW_ID into site user settings if present
@@ -311,11 +310,11 @@ public class Chan8PowInterceptor implements Interceptor {
                                 org.otacoo.chan.core.settings.json.JsonSettings js = org.otacoo.chan.core.settings.json.JsonSettingsUtil.fromMap(toPersist);
                                 org.otacoo.chan.core.site.SiteService svc = org.otacoo.chan.Chan.injector().instance(org.otacoo.chan.core.site.SiteService.class);
                                 svc.updateUserSettings(site, js);
-                                org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "Persisted POW cookies to site settings for " + site.name());
+                                // Logger.w(TAG, "Persisted POW cookies to site settings for " + site.name());
                             }
                         }
                     } catch (Exception ignored) {
-                        org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "persist site settings failed: " + ignored.getMessage());
+                        Logger.w(TAG, "persist site settings failed: " + ignored.getMessage());
                     }
                 }
             } catch (Exception ignored) {}
@@ -370,13 +369,13 @@ public class Chan8PowInterceptor implements Interceptor {
             String body = cr.body() != null ? cr.body().string() : "";
             cr.close();
             if ("required".equalsIgnoreCase(powH)) {
-                org.otacoo.chan.utils.Logger.i("Chan8PowInterceptor", "fetchPowChallenge: challenge obtained from captcha.js");
+                // Logger.i(TAG, "fetchPowChallenge: challenge obtained from captcha.js");
                 return body;
             }
-            org.otacoo.chan.utils.Logger.w("Chan8PowInterceptor", "fetchPowChallenge: captcha.js returned no challenge (X-PoWBlock-Status=" + powH + ")");
+            Logger.w(TAG, "fetchPowChallenge: captcha.js returned no challenge (X-PoWBlock-Status=" + powH + ")");
             return null;
         } catch (Exception e) {
-            org.otacoo.chan.utils.Logger.e("Chan8PowInterceptor", "fetchPowChallenge error: " + e.getMessage());
+            Logger.e(TAG, "fetchPowChallenge error: " + e.getMessage());
             return null;
         }
     }
