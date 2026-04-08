@@ -1,3 +1,9 @@
+## 2026-04-08 – v3.3.18
+
+- Update proof-of-work captcha after 8chan changes
+- Fix an issue where the cookie manager was showing cookies from the wrong cookie storage for 8chan
+- Fix an issue where the new posts snackbar could be orphaned and get stuck if it triggered during the 4chan captcha process
+
 ## 2026-04-06 – v3.3.17
 
 >[!NOTE]
