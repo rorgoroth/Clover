@@ -18,6 +18,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONObject;
 import org.otacoo.chan.R;
@@ -235,7 +236,7 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
                 mainHandler.post(() -> {
                     currentCaptchaId = finalId;
                     captchaImage.setImageBitmap(finalBmp);
-                    setStatus("Solve the captcha to enable posting");
+                    setStatus("Posting requires a block bypass (proof-of-work).\nPlease solve the captcha.");
                     submitButton.setEnabled(true);
                     captchaInput.requestFocus();
                     AndroidUtils.requestKeyboardFocus(captchaInput);
@@ -341,7 +342,7 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
 
                     // Cookie > 368 chars means it has a hash target → needs POW.
                     if (bypassCookieValue != null && bypassCookieValue.length() > 368) {
-                        setStatus("Please wait, solving proof of work... This can take a few minutes.");
+                        setStatus("Please wait, solving proof of work\u2026 \nThis may take a few minutes.");
                         runPowAndValidate(captchaId, bypassCookieValue);
                         return;
                     }
@@ -424,7 +425,10 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
                 if ("ok".equals(vjson.optString("status"))) {
                     org.otacoo.chan.core.site.sites.chan8.Chan8PowNotifier.onPowSolved();
                     Logger.i(TAG, "Bypass established after POW validation");
-                    mainHandler.post(() -> callback.onAuthenticationComplete(this, "", ""));
+                    mainHandler.post(() -> {
+                        Toast.makeText(getContext(), "Bypass acquired successfully.", Toast.LENGTH_SHORT).show();
+                        callback.onAuthenticationComplete(this, "", "");
+                    });
                 } else {
                     showError("POW validation failed: " + vBody);
                     mainHandler.post(() -> { submitButton.setEnabled(true); hardReset(); });
