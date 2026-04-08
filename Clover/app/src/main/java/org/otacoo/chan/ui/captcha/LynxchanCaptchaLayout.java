@@ -10,13 +10,13 @@ import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.otacoo.chan.R;
 import org.otacoo.chan.core.model.orm.Loadable;
@@ -51,11 +51,11 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
 
     private ImageView captchaImage;
     private EditText captchaInput;
-    private Button refreshButton;
     private Button submitButton;
     private TextView statusText;
 
     private String currentCaptchaId;
+    private boolean wasSubmitted;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     public LynxchanCaptchaLayout(Context context) {
@@ -76,11 +76,9 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
 
         captchaImage   = findViewById(R.id.lynxchan_captcha_image);
         captchaInput   = findViewById(R.id.lynxchan_captcha_input);
-        refreshButton  = findViewById(R.id.lynxchan_captcha_refresh);
         submitButton   = findViewById(R.id.lynxchan_captcha_submit);
         statusText     = findViewById(R.id.lynxchan_captcha_status);
 
-        refreshButton.setOnClickListener(v -> hardReset());
         submitButton.setOnClickListener(v -> submit());
         captchaImage.setOnClickListener(v -> hardReset());
 
@@ -112,11 +110,20 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
 
     @Override
     public void hardReset() {
+        // If we're resetting right after a submit, the server rejected the answer.
+        if (wasSubmitted) {
+            Toast.makeText(getContext(), "Wrong answer or expired captcha.", Toast.LENGTH_LONG).show();
+        }
+        wasSubmitted = false;
+
         currentCaptchaId = null;
         captchaInput.setText("");
         captchaImage.setImageBitmap(null);
         setStatus("Loading captcha\u2026");
         submitButton.setEnabled(false);
+
+        // Clear the old captchaid cookie so the server issues a fresh captcha.
+        clearCaptchaIdCookie();
 
         String boardCode = (loadable != null && loadable.board != null)
                 ? loadable.board.code : "";
@@ -129,6 +136,36 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
         new Thread(() -> fetchCaptcha(url)).start();
     }
 
+    private void clearCaptchaIdCookie() {
+        // java.net CookieStore
+        java.net.CookieManager jcm = org.otacoo.chan.core.di.NetModule.getSharedCookieManager();
+        if (jcm != null) {
+            try {
+                java.net.CookieStore store = jcm.getCookieStore();
+                for (java.net.URI uri : new java.util.ArrayList<>(store.getURIs())) {
+                    if (uri.getHost() != null && uri.getHost().contains("8chan")) {
+                        for (java.net.HttpCookie c : new java.util.ArrayList<>(store.get(uri))) {
+                            if ("captchaid".equals(c.getName())) {
+                                store.remove(uri, c);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // android.webkit CookieManager
+        mainHandler.post(() -> {
+            try {
+                android.webkit.CookieManager wvcm = android.webkit.CookieManager.getInstance();
+                for (String d : new String[]{"https://8chan.moe/", "https://8chan.st/"}) {
+                    wvcm.setCookie(d, "captchaid=; Max-Age=0; Path=/");
+                }
+                wvcm.flush();
+            } catch (Exception ignored) {}
+        });
+    }
+
     private void fetchCaptcha(String url) {
         try {
             // 8chan returns a raw JPEG image. The captcha ID is
@@ -136,6 +173,7 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
             Request req = new Request.Builder()
                     .url(url)
                     .header("Accept", "image/jpeg,image/*,*/*")
+                    .header("Cache-Control", "no-cache")
                     .build();
 
             try (Response resp = okHttpClient.newCall(req).execute()) {
@@ -204,7 +242,7 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
                 mainHandler.post(() -> {
                     currentCaptchaId = finalId;
                     captchaImage.setImageBitmap(finalBmp);
-                    setStatus("Type the characters shown above");
+                    setStatus("Type the characters shown above. \nReload or tap the captcha image to fetch a new challenge.");
                     submitButton.setEnabled(true);
                     captchaInput.requestFocus();
                     AndroidUtils.requestKeyboardFocus(captchaInput);
@@ -227,6 +265,7 @@ public class LynxchanCaptchaLayout extends LinearLayout implements Authenticatio
             return;
         }
         AndroidUtils.hideKeyboard(captchaInput);
+        wasSubmitted = true;
         callback.onAuthenticationComplete(this, currentCaptchaId, answer);
     }
 

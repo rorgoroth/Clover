@@ -80,7 +80,6 @@ public class LynxchanBypassLayout extends LinearLayout implements Authentication
 
         captchaImage  = findViewById(R.id.lynxchan_captcha_image);
         captchaInput  = findViewById(R.id.lynxchan_captcha_input);
-        refreshButton = findViewById(R.id.lynxchan_captcha_refresh);
         submitButton  = findViewById(R.id.lynxchan_captcha_submit);
         statusText    = findViewById(R.id.lynxchan_captcha_status);
 

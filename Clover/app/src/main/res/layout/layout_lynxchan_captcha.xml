@@ -14,7 +14,7 @@
         android:background="@android:color/transparent"
         android:contentDescription="Captcha image" />
 
-    <!-- Input row: text field + refresh button -->
+    <!-- Input row: text field + submit button -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -31,17 +31,6 @@
             android:imeOptions="actionDone"
             android:maxLines="1"
             android:textSize="14sp" />
-
-        <Button
-            android:id="@+id/lynxchan_captcha_refresh"
-            style="@style/Widget.AppCompat.Button.Borderless.Colored"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="↺"
-            android:textSize="18sp"
-            android:minWidth="0dp"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp" />
 
         <Button
             android:id="@+id/lynxchan_captcha_submit"
