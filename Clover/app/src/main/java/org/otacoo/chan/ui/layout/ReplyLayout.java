@@ -647,7 +647,9 @@ public class ReplyLayout extends LoadView implements
                 }
                 break;
             case AUTHENTICATION:
-                setWrap(false);
+                boolean lynxchan = authenticationLayout instanceof LynxchanCaptchaLayout
+                        || authenticationLayout instanceof LynxchanBypassLayout;
+                setWrap(lynxchan);
                 cooldownUpdateHandler.removeCallbacks(cooldownUpdateRunnable);
                 openMessage(false, true, "", false);
                 
@@ -666,12 +668,16 @@ public class ReplyLayout extends LoadView implements
                     captchaContainer.setPadding(0, 0, 0, 0);
                 }
                 setView(captchaContainer);
-                View focus = getRootView() != null ? getRootView().findFocus() : null;
-                if (focus != null) focus.clearFocus();
-                AndroidUtils.hideKeyboard(this);
-                if (getContext() instanceof Activity) {
-                    ((Activity) getContext()).getWindow().setSoftInputMode(
-                            WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+                if (!lynxchan) {
+                    // Full-screen captchas (4chan, webview) hide the keyboard.
+                    // Lynxchan captcha/bypass need keyboard input, so leave it alone.
+                    View focus = getRootView() != null ? getRootView().findFocus() : null;
+                    if (focus != null) focus.clearFocus();
+                    AndroidUtils.hideKeyboard(this);
+                    if (getContext() instanceof Activity) {
+                        ((Activity) getContext()).getWindow().setSoftInputMode(
+                                WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+                    }
                 }
                 break;
         }
