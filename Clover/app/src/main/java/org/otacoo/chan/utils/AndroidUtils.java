@@ -320,7 +320,7 @@ public class AndroidUtils {
     }
 
     public static void requestViewAndKeyboardFocus(View view) {
-        view.setFocusable(false);
+        view.setFocusable(true);
         view.setFocusableInTouchMode(true);
         if (view.requestFocus()) {
             InputMethodManager inputManager =
