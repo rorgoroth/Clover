@@ -575,6 +575,36 @@ public class ImageViewerController extends Controller implements ImageViewerPres
                     }
                 }
             });
+        } else {
+            Window window = getWindow();
+            if (window != null) {
+                statusBarColorPrevious = window.getStatusBarColor();
+            }
+
+            setBackgroundAlpha(0f);
+
+            startAnimation = new AnimatorSet();
+
+            ValueAnimator backgroundAlpha = ValueAnimator.ofFloat(0f, 1f);
+            backgroundAlpha.addUpdateListener(animation -> setBackgroundAlpha((float) animation.getAnimatedValue()));
+
+            startAnimation.play(backgroundAlpha);
+            startAnimation.setDuration(TRANSITION_DURATION);
+            startAnimation.setInterpolator(new PathInterpolator(0.4f, 0f, 0.2f, 1f));
+            startAnimation.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationStart(Animator animation) {
+                    imageViewerCallback.onPreviewCreate(ImageViewerController.this, postImage);
+                }
+
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    startAnimation = null;
+                    presenter.onInTransitionEnd();
+                }
+            });
+
+            startAnimation.start();
         }
     }
 
