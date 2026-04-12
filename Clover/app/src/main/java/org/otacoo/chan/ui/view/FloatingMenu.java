@@ -191,8 +191,8 @@ public class FloatingMenu {
                     if (position >= 0 && position < items.size()) {
                         FloatingMenuItem item = items.get(position);
                         if (item.isEnabled()) {
-                            callback.onFloatingMenuItemClicked(FloatingMenu.this, item);
                             popupWindow.dismiss();
+                            callback.onFloatingMenuItemClicked(FloatingMenu.this, item);
                         }
                     } else {
                         callback.onFloatingMenuItemClicked(FloatingMenu.this, null);

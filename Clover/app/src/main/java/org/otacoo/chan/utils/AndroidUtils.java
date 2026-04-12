@@ -319,15 +319,34 @@ public class AndroidUtils {
         }
     }
 
-    public static void requestViewAndKeyboardFocus(View view) {
+    public static void requestViewAndKeyboardFocus(final View view) {
         view.setFocusable(true);
         view.setFocusableInTouchMode(true);
-        if (view.requestFocus()) {
-            InputMethodManager inputManager =
-                    (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (inputManager != null) {
-                inputManager.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+        view.requestFocus();
+
+        Runnable showKeyboard = new Runnable() {
+            @Override
+            public void run() {
+                InputMethodManager inputManager =
+                        (InputMethodManager) view.getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (inputManager != null) {
+                    inputManager.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
+                }
             }
+        };
+
+        if (view.hasWindowFocus()) {
+            showKeyboard.run();
+        } else {
+            view.getViewTreeObserver().addOnWindowFocusChangeListener(new ViewTreeObserver.OnWindowFocusChangeListener() {
+                @Override
+                public void onWindowFocusChanged(boolean hasFocus) {
+                    if (hasFocus) {
+                        showKeyboard.run();
+                        view.getViewTreeObserver().removeOnWindowFocusChangeListener(this);
+                    }
+                }
+            });
         }
     }
 
