@@ -74,7 +74,6 @@ public class Sushichan extends CommonSite {
         setIcon(SiteIcon.fromAssets("icons/sushichan.webp"));
 
         setBoards(
-                Board.fromSiteNameCode(this, "life is like a (sushi)boat", "kaitensushi"),
                 Board.fromSiteNameCode(this, "sushi social", "lounge"),
                 Board.fromSiteNameCode(this, "vidya gaems", "arcade"),
                 Board.fromSiteNameCode(this, "cute things", "kawaii"),
