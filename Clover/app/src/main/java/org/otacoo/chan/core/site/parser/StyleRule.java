@@ -304,12 +304,23 @@ public class StyleRule {
     }
 
     private SpannableString applySpan(CharSequence text, List<Object> spans) {
-        SpannableString result = new SpannableString(text);
+        SpannableString result = new SpannableString(text.toString());
         int l = result.length();
 
         for (Object span : spans) {
             if (span != null) {
                 result.setSpan(span, 0, l, 0);
+            }
+        }
+
+        if (text instanceof android.text.Spanned) {
+            android.text.Spanned spanned = (android.text.Spanned) text;
+            Object[] existingSpans = spanned.getSpans(0, l, Object.class);
+            for (Object span : existingSpans) {
+                int start = spanned.getSpanStart(span);
+                int end = spanned.getSpanEnd(span);
+                int flags = spanned.getSpanFlags(span);
+                result.setSpan(span, start, end, flags);
             }
         }
 
