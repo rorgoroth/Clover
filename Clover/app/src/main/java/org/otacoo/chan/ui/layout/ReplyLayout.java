@@ -661,7 +661,7 @@ public class ReplyLayout extends LoadView implements
                     }
                 }
 
-                if (ChanSettings.toolbarBottom.get()) {
+                if (ChanSettings.toolbarBottom.get() && !lynxchan) {
                     captchaContainer.setPadding(0, 0, 0,
                             getResources().getDimensionPixelSize(R.dimen.toolbar_height));
                 } else {
