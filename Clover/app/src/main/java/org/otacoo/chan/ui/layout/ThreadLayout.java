@@ -91,9 +91,9 @@ public class ThreadLayout extends CoordinatorLayout implements
     }
 
     // Top and Bottom FAB, could make these into menu options later if desired
-    private static final int SCROLL_THRESHOLD_PX = 600;
-    private static final int TOP_BOTTOM_DIRECTION_DELAY_MS = 300;
-    private static final int FAB_HIDE_DELAY_MS = 1000;
+    private static final int SCROLL_THRESHOLD_PX = 500;
+    private static final int TOP_BOTTOM_DIRECTION_DELAY_MS = 200;
+    private static final int FAB_HIDE_DELAY_MS = 900;
 
     @Inject
     DatabaseManager databaseManager;
