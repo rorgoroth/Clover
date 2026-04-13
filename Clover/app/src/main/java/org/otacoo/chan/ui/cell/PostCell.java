@@ -771,6 +771,11 @@ public class PostCell extends LinearLayout implements PostCellInterface {
                 Layout layout = widget.getLayout();
                 if (layout != null) {
                     int line = layout.getLineForVertical(y);
+                    if (!ChanSettings.tapQuotelinkSpan.get() && (x < layout.getLineLeft(line) || x > layout.getLineRight(line))) {
+                        android.text.Selection.removeSelection(buffer);
+                        return false;
+                    }
+
                     int off = layout.getOffsetForHorizontal(line, x);
 
                     ClickableSpan[] link = buffer.getSpans(off, off, ClickableSpan.class);
@@ -888,6 +893,10 @@ public class PostCell extends LinearLayout implements PostCellInterface {
                 if (layout == null) return false;
 
                 int line = layout.getLineForVertical(y);
+                if (!ChanSettings.tapQuotelinkSpan.get() && (x < layout.getLineLeft(line) || x > layout.getLineRight(line))) {
+                    return false;
+                }
+
                 int off = layout.getOffsetForHorizontal(line, x);
 
                 ClickableSpan[] link = buffer.getSpans(off, off, ClickableSpan.class);

@@ -115,6 +115,10 @@ public class BrowsingSettingsController extends SettingsController {
                     ChanSettings.tapNoReply,
                     R.string.setting_tap_no_rely, 0));
 
+            posts.add(new BooleanSettingView(this,
+                    ChanSettings.tapQuotelinkSpan,
+                    R.string.setting_tap_quotelink_span, R.string.setting_tap_quotelink_span_desc));
+
             requiresUiRefresh.add(posts.add(new BooleanSettingView(this,
                     ChanSettings.postFullDate,
                     R.string.setting_post_full_date, 0)));

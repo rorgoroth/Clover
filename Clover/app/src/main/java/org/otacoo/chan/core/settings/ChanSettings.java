@@ -228,6 +228,7 @@ public class ChanSettings {
     public static final BooleanSetting repliesButtonsBottom;
     public static final BooleanSetting confirmExit;
     public static final BooleanSetting tapNoReply;
+    public static final BooleanSetting tapQuotelinkSpan;
     public static final BooleanSetting volumeKeysScrolling;
     public static final BooleanSetting postFullDate;
     public static final BooleanSetting postFileInfo;
@@ -337,6 +338,7 @@ public class ChanSettings {
         repliesButtonsBottom = new BooleanSetting(p, "preference_buttons_bottom", false);
         confirmExit = new BooleanSetting(p, "preference_confirm_exit", true);
         tapNoReply = new BooleanSetting(p, "preference_tap_no_reply", false);
+        tapQuotelinkSpan = new BooleanSetting(p, "preference_tap_quotelink_span", true);
         volumeKeysScrolling = new BooleanSetting(p, "preference_volume_key_scrolling", false);
         postFullDate = new BooleanSetting(p, "preference_post_full_date", false);
         postFileInfo = new BooleanSetting(p, "preference_post_file_info", true);
