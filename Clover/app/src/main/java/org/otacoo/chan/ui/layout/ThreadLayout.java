@@ -93,7 +93,7 @@ public class ThreadLayout extends CoordinatorLayout implements
     // Top and Bottom FAB, could make these into menu options later if desired
     private static final int SCROLL_THRESHOLD_PX = 500;
     private static final int TOP_BOTTOM_DIRECTION_DELAY_MS = 200;
-    private static final int FAB_HIDE_DELAY_MS = 900;
+    private static final int FAB_HIDE_DELAY_MS = 950;
 
     @Inject
     DatabaseManager databaseManager;
@@ -239,6 +239,9 @@ public class ThreadLayout extends CoordinatorLayout implements
         } else if (v == topButton) {
             threadListLayout.scrollTo(0, false);
             showTopBottomButtons(false, false);
+            if (getToolbar() != null) {
+                getToolbar().collapseShow(true);
+            }
         } else if (v == bottomButton) {
             threadListLayout.scrollTo(-1, false);
             showTopBottomButtons(false, false);
@@ -350,20 +353,12 @@ public class ThreadLayout extends CoordinatorLayout implements
         boolean atTop = threadListLayout.getTopAdapterPosition() <= 0;
         boolean atBottom = threadListLayout.scrolledToBottom();
 
-        if (atTop) {
-            topButton.setVisibility(View.GONE);
-            bottomButton.setVisibility(View.VISIBLE);
-        } else if (atBottom) {
-            topButton.setVisibility(View.VISIBLE);
+        if (scrollingUp) {
+            topButton.setVisibility(atTop ? View.GONE : View.VISIBLE);
             bottomButton.setVisibility(View.GONE);
         } else {
-            if (scrollingUp) {
-                topButton.setVisibility(View.VISIBLE);
-                bottomButton.setVisibility(View.GONE);
-            } else {
-                topButton.setVisibility(View.GONE);
-                bottomButton.setVisibility(View.VISIBLE);
-            }
+            topButton.setVisibility(View.GONE);
+            bottomButton.setVisibility(atBottom ? View.GONE : View.VISIBLE);
         }
 
         animateFab(topButton, topButton.getVisibility() == View.VISIBLE);
@@ -800,20 +795,12 @@ public class ThreadLayout extends CoordinatorLayout implements
             boolean atTop = threadListLayout.getTopAdapterPosition() <= 0;
             boolean atBottom = threadListLayout.scrolledToBottom();
 
-            if (atTop) {
-                topButton.setVisibility(View.GONE);
-                bottomButton.setVisibility(View.VISIBLE);
-            } else if (atBottom) {
-                topButton.setVisibility(View.VISIBLE);
+            if (scrollingUp) {
+                topButton.setVisibility(atTop ? View.GONE : View.VISIBLE);
                 bottomButton.setVisibility(View.GONE);
             } else {
-                if (scrollingUp) {
-                    topButton.setVisibility(View.VISIBLE);
-                    bottomButton.setVisibility(View.GONE);
-                } else {
-                    topButton.setVisibility(View.GONE);
-                    bottomButton.setVisibility(View.VISIBLE);
-                }
+                topButton.setVisibility(View.GONE);
+                bottomButton.setVisibility(atBottom ? View.GONE : View.VISIBLE);
             }
         }
 
