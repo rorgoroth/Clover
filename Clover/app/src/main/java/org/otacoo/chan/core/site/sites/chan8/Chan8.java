@@ -213,7 +213,10 @@ public class Chan8 extends CommonSite {
         // Use Chan8Actions (extends LynxchanActions) for 8chan-specific login behaviour
         setActions(new Chan8Actions(this));
         setApi(new LynxchanApi(this));
-        setParser(new LynxchanCommentParser());
+        LynxchanCommentParser parser = new LynxchanCommentParser();
+        parser.addInternalDomain("8chan.moe");
+        parser.addInternalDomain("www.8chan.moe");
+        setParser(parser);
 
         setConfig(new CommonConfig() {
             @Override

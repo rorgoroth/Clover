@@ -126,7 +126,10 @@ public class Sushichan extends CommonSite {
         });
         setActions(new VichanActions(this));
         setApi(new VichanApi(this));
-        setParser(new VichanCommentParser());
+        VichanCommentParser parser = new VichanCommentParser();
+        parser.addInternalDomain("sushigirl.cafe");
+        parser.addInternalDomain("www.sushigirl.cafe");
+        setParser(parser);
     }
 
     @Override

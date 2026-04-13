@@ -131,7 +131,10 @@ public class Lainchan extends CommonSite {
         });
         setActions(new VichanActions(this));
         setApi(new VichanApi(this));
-        setParser(new VichanCommentParser());
+        VichanCommentParser parser = new VichanCommentParser();
+        parser.addInternalDomain("lainchan.org");
+        parser.addInternalDomain("www.lainchan.org");
+        setParser(parser);
     }
 
     @Override
