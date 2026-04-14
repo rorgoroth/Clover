@@ -396,7 +396,19 @@ public class ThreadPresenter implements
     public void onNewPostsViewClicked() {
         Post post = findPostById(loadable.lastViewed);
         if (post != null) {
-            scrollToPost(post, true);
+            int position = -1;
+            List<Post> posts = threadPresenterCallback.getDisplayingPosts();
+            for (int i = 0; i < posts.size(); i++) {
+                if (posts.get(i).no == post.no) {
+                    position = i;
+                    break;
+                }
+            }
+            if (position >= 0 && position + 1 < posts.size()) {
+                scrollTo(position + 1, true);
+            } else {
+                scrollToPost(post, true);
+            }
         } else {
             scrollTo(-1, true);
         }
