@@ -45,17 +45,8 @@ public class PopupControllerContainer extends FrameLayout {
 
         FrameLayout.LayoutParams child = (LayoutParams) getChildAt(0).getLayoutParams();
 
-        if (widthMode == MeasureSpec.EXACTLY && widthSize < dp(600)) {
-            child.width = widthSize;
-        } else {
-            child.width = dp(600);
-        }
-
-        if (heightMode == MeasureSpec.EXACTLY && heightSize < dp(600)) {
-            child.height = heightSize;
-        } else {
-            child.height = dp(600);
-        }
+        child.width = widthSize;
+        child.height = heightSize;
 
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
