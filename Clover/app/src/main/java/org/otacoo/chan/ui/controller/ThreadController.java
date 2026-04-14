@@ -260,7 +260,7 @@ public abstract class ThreadController extends Controller implements
 
     @Override
     public boolean shouldToolbarCollapse() {
-        return !AndroidUtils.isTablet(context) && !ChanSettings.neverHideToolbar.get();
+        return !ChanSettings.neverHideToolbar.get();
     }
 
     @Override
