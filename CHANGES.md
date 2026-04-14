@@ -1,3 +1,24 @@
+## 2026-04-13 – v3.3.21
+
+- **New option:** Tap the quotelink span to open
+  - This is actually a fix for the quotelinks opening when tapping anywhere inside the quotelink's span instead of just the quotelink itself which led to a lot of accidental taps. Since some users might be used to this behaviour I added an option under *Browsing > Posts & replies* to gate it.
+- Tablet-specific changes:
+  - The option *Never hide the toolbar* will now correctly work
+  - The settings menu will no longer be shown in a popup when using the Auto layout mode
+- New posts snackbar:
+  - Re-implemented this snackbar programmatically within the app instead of relying on Android's own snackbars
+  - Snackbar should no longer float when coming from wakelock or switching between threads
+  - VIEW button will now correctly scroll to the unread line if not in view
+  - Snackbar will no longer show at the top when using the *Bottom toolbar* option, can now be correctly shown above toolbar
+  - Will try to mimic tablet snackbar size when using a tablet
+- Further improve Top/Down buttons (issue #22):
+  - Will no longer show the Top button on hitting the bottom and vice-versa
+  - Fix an issue where using the Top button would leave a gap in the header
+- Fix an issue on certain devices where a retry prompt was shown when updating the app instead of only when it failed to update (issue #21)
+- Fix an issue with short URLs in 8chan, Sushichan, and Lainchan, that were being considered as internal links and thus getting the wrong styling
+
+Thank you @T-W-A-I-N
+
 ## 2026-04-12 – v3.3.20
 
 - Slighty adjusted the values of the top/bottom buttons to more rapidly respond to direction changes
