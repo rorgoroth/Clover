@@ -97,4 +97,8 @@ public class AlbumViewCell extends FrameLayout {
     public void showLabel() {
         text.animate().alpha(1f).setDuration(200).setInterpolator(new DecelerateInterpolator(2f));
     }
+
+    public void showLabelImmediate() {
+        text.setAlpha(1f);
+    }
 }

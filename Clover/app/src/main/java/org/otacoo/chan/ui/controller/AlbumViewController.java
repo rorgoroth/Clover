@@ -18,6 +18,7 @@
 package org.otacoo.chan.ui.controller;
 
 import static org.otacoo.chan.utils.AndroidUtils.dp;
+import static org.otacoo.chan.utils.AndroidUtils.getString;
 
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -30,6 +31,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.otacoo.chan.R;
 import org.otacoo.chan.controller.Controller;
 import org.otacoo.chan.core.model.PostImage;
+import org.otacoo.chan.core.settings.ChanSettings;
 import org.otacoo.chan.core.model.orm.Loadable;
 import org.otacoo.chan.ui.cell.AlbumViewCell;
 import org.otacoo.chan.ui.toolbar.ToolbarMenuSubItem;
@@ -62,6 +64,9 @@ public class AlbumViewController extends Controller implements
         // Navigation
         navigation.buildMenu().withOverflow()
                 .withSubItem(R.string.action_download_album, this::downloadAlbumClicked)
+                .withSubItem(ChanSettings.hideAlbumImageInfo.get()
+                        ? getString(R.string.action_show_image_info)
+                        : getString(R.string.action_hide_image_info), this::toggleImageInfoClicked)
                 .build().build();
 
         // View setup
@@ -84,6 +89,13 @@ public class AlbumViewController extends Controller implements
         navigation.title = title;
         navigation.subtitle = context.getResources().getQuantityString(R.plurals.image, postImages.size(), postImages.size());
         targetIndex = index;
+    }
+
+    private void toggleImageInfoClicked(ToolbarMenuSubItem item) {
+        boolean hide = !ChanSettings.hideAlbumImageInfo.get();
+        ChanSettings.hideAlbumImageInfo.set(hide);
+        item.text = getString(hide ? R.string.action_show_image_info : R.string.action_hide_image_info);
+        albumAdapter.notifyDataSetChanged();
     }
 
     private void downloadAlbumClicked(ToolbarMenuSubItem item) {
@@ -116,7 +128,7 @@ public class AlbumViewController extends Controller implements
     @Override
     public void onPreviewDestroy(ImageViewerController imageViewerController, PostImage postImage) {
         AlbumViewCell cell = findCellForImage(postImage);
-        if (cell != null) {
+        if (cell != null && !ChanSettings.hideAlbumImageInfo.get()) {
             cell.showLabel();
         }
     }
@@ -191,6 +203,11 @@ public class AlbumViewController extends Controller implements
         public void onBindViewHolder(AlbumItemCellHolder holder, int position) {
             PostImage postImage = postImages.get(position);
             holder.cell.setPostImage(postImage);
+            if (ChanSettings.hideAlbumImageInfo.get()) {
+                holder.cell.hideLabel();
+            } else {
+                holder.cell.showLabelImmediate();
+            }
         }
 
         @Override
