@@ -187,18 +187,11 @@ public class MediaSettingsController extends SettingsController implements
 
             List<ListSettingView.Item<?>> vp9ExtModes = new ArrayList<>();
             for (ChanSettings.Vp9ExtensionMode mode : ChanSettings.Vp9ExtensionMode.values()) {
-                int name = 0;
-                switch (mode) {
-                    case DEFAULT:
-                        name = R.string.setting_vp9_extension_mode_default;
-                        break;
-                    case PREFER:
-                        name = R.string.setting_vp9_extension_mode_prefer;
-                        break;
-                    case OFF:
-                        name = R.string.setting_vp9_extension_mode_off;
-                        break;
-                }
+                int name = switch (mode) {
+                    case DEFAULT -> R.string.setting_vp9_extension_mode_default;
+                    case PREFER -> R.string.setting_vp9_extension_mode_prefer;
+                    case OFF -> R.string.setting_vp9_extension_mode_off;
+                };
                 vp9ExtModes.add(new ListSettingView.Item<>(getString(name), mode));
             }
             video.add(new ListSettingView<>(this, ChanSettings.vp9ExtensionMode,
@@ -227,18 +220,11 @@ public class MediaSettingsController extends SettingsController implements
         List<ListSettingView.Item<?>> imageAutoLoadTypes = new ArrayList<>();
         List<ListSettingView.Item<?>> videoAutoLoadTypes = new ArrayList<>();
         for (ChanSettings.MediaAutoLoadMode mode : ChanSettings.MediaAutoLoadMode.values()) {
-            int name = 0;
-            switch (mode) {
-                case ALL:
-                    name = R.string.setting_image_auto_load_all;
-                    break;
-                case WIFI:
-                    name = R.string.setting_image_auto_load_wifi;
-                    break;
-                case NONE:
-                    name = R.string.setting_image_auto_load_none;
-                    break;
-            }
+            int name = switch (mode) {
+                case ALL -> R.string.setting_image_auto_load_all;
+                case WIFI -> R.string.setting_image_auto_load_wifi;
+                case NONE -> R.string.setting_image_auto_load_none;
+            };
 
             imageAutoLoadTypes.add(new ListSettingView.Item<>(getString(name), mode));
             videoAutoLoadTypes.add(new ListSettingView.Item<>(getString(name), mode));
@@ -294,29 +280,15 @@ public class MediaSettingsController extends SettingsController implements
     private List<ListSettingView.Item<?>> createDestinationFolderList() {
         List<ListSettingView.Item<?>> folderModes = new ArrayList<>();
         for (ChanSettings.DestinationFolderMode mode : ChanSettings.DestinationFolderMode.values()) {
-            int name = 0;
-            switch (mode) {
-                case ROOT:
-                    name = R.string.setting_save_mode_root;
-                    break;
-                case SITE:
-                    name = R.string.setting_save_mode_site;
-                    break;
-                case SITE_BOARD:
-                    name = R.string.setting_save_mode_siteboard;
-                    break;
-                case SITE_BOARD_THREAD:
-                    name = R.string.setting_save_mode_siteboardthread;
-                    break;
-                case BOARD:
-                    name = R.string.setting_save_mode_board;
-                    break;
-                case BOARD_THREAD:
-                    name = R.string.setting_save_mode_boardthread;
-                    break;
-                case LEGACY:
-                    name = R.string.setting_save_mode_legacy;
-            }
+            int name = switch (mode) {
+                case ROOT -> R.string.setting_save_mode_root;
+                case SITE -> R.string.setting_save_mode_site;
+                case SITE_BOARD -> R.string.setting_save_mode_siteboard;
+                case SITE_BOARD_THREAD -> R.string.setting_save_mode_siteboardthread;
+                case BOARD -> R.string.setting_save_mode_board;
+                case BOARD_THREAD -> R.string.setting_save_mode_boardthread;
+                case LEGACY -> R.string.setting_save_mode_legacy;
+            };
             folderModes.add(new ListSettingView.Item<>(getString(name), mode));
         }
         return folderModes;
@@ -324,7 +296,7 @@ public class MediaSettingsController extends SettingsController implements
 
     private String getAttachmentPickerDescription() {
         String label = ImagePickDelegate.getPreferredPickerLabel();
-        if (label == null || label.isEmpty()) {
+        if (label.isEmpty()) {
             return getString(R.string.setting_attachment_picker_default_not_set);
         }
         return context.getString(R.string.setting_attachment_picker_legacy_choice, label);
@@ -332,7 +304,7 @@ public class MediaSettingsController extends SettingsController implements
 
     private void resetAttachmentPickerChoice() {
         String label = ImagePickDelegate.getPreferredPickerLabel();
-        if (label == null || label.isEmpty()) {
+        if (label.isEmpty()) {
             Toast.makeText(context, R.string.setting_attachment_picker_default_not_set, Toast.LENGTH_SHORT).show();
             return;
         }
