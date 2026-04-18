@@ -53,6 +53,7 @@ public class Reply {
     public int selectionStart;
     public int selectionEnd;
     public boolean spoilerImage = false;
+    public boolean skipPass = false;
     public String password = "";
     public String flag = "";
 

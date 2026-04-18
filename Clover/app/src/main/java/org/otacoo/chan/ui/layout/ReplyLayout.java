@@ -162,6 +162,8 @@ public class ReplyLayout extends LoadView implements
     private ImageView attach;
     private ImageView more;
     private ImageView submit;
+    private final Handler submitHandler = new Handler(Looper.getMainLooper());
+    private Runnable submitSkipPassRunnable;
     private DropdownArrowDrawable moreDropdown;
 
     // Captcha views:
@@ -378,6 +380,25 @@ public class ReplyLayout extends LoadView implements
         theme().sendDrawable.apply(submit);
         setRoundItemBackground(submit);
         submit.setOnClickListener(this);
+        submit.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    submitSkipPassRunnable = () -> {
+                        presenter.onSubmitLongClicked();
+                        submitSkipPassRunnable = null;
+                    };
+                    submitHandler.postDelayed(submitSkipPassRunnable, 2000);
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    if (submitSkipPassRunnable != null) {
+                        submitHandler.removeCallbacks(submitSkipPassRunnable);
+                        submitSkipPassRunnable = null;
+                    }
+                    break;
+            }
+            return false;
+        });
 
         // Inflate captcha layout
         captchaContainer = (FrameLayout) inflater.inflate(R.layout.layout_reply_captcha, this, false);

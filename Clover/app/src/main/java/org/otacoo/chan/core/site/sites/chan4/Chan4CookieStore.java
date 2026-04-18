@@ -197,6 +197,32 @@ public class Chan4CookieStore {
         return parts.isEmpty() ? null : TextUtils.join("; ", parts);
     }
 
+    // Like getCookieHeader but strips pass_id and pass_enabled cookies.
+    // Used when the user wants to skip their 4chan pass for a single post.
+    public String getCookieHeaderWithoutPass(String url) {
+        Set<String> parts = new LinkedHashSet<>();
+        CookieManager cm = CookieManager.getInstance();
+
+        String requestCookies = cm.getCookie(url);
+        if (requestCookies != null && !requestCookies.isEmpty()) {
+            parts.addAll(Arrays.asList(requestCookies.split(";\\s*")));
+        }
+        for (String domain : SESSION_DOMAINS) {
+            String cookies = cm.getCookie(domain);
+            if (cookies != null && !cookies.isEmpty()) {
+                parts.addAll(Arrays.asList(cookies.split(";\\s*")));
+            }
+        }
+
+        parts.removeIf(c -> {
+            String trimmed = c.trim();
+            return trimmed.startsWith("pass_id=")
+                    || trimmed.startsWith("pass_enabled=");
+        });
+
+        return parts.isEmpty() ? null : TextUtils.join("; ", parts);
+    }
+
     // Injects 4chan pass cookies from SharedPrefs into the given WebView so that 4chan's captcha
     // and report pages receive the correct pass identity for this device.
     public void syncToWebView(WebView webView) {

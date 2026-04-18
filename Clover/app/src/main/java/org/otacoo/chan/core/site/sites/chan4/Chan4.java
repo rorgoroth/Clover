@@ -325,8 +325,16 @@ public class Chan4 extends SiteBase {
     private final SiteRequestModifier siteRequestModifier = new SiteRequestModifier() {
         @Override
         public void modifyHttpCall(HttpCall httpCall, Request.Builder requestBuilder) {
-            String cookieHeader = cookieStore.getCookieHeader(
-                    requestBuilder.build().url().toString());
+            boolean skipPass = (httpCall instanceof CommonReplyHttpCall)
+                    && ((CommonReplyHttpCall) httpCall).reply.skipPass;
+            String cookieHeader;
+            if (skipPass) {
+                cookieHeader = cookieStore.getCookieHeaderWithoutPass(
+                        requestBuilder.build().url().toString());
+            } else {
+                cookieHeader = cookieStore.getCookieHeader(
+                        requestBuilder.build().url().toString());
+            }
             if (cookieHeader != null) {
                 requestBuilder.header("Cookie", cookieHeader);
             }

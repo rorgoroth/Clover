@@ -355,6 +355,7 @@ If any other filters are enabled for it, it will not work.
     <string name="reply_spoiler_image">Spoiler image</string>
     <string name="reply_no_preview">No preview</string>
     <string name="reply_submit">Submit</string>
+    <string name="skip_pass_toast">Skipping 4chan pass…</string>
     <string name="reply_error">Error posting</string>
     <string name="reply_error_empty">Nothing to post (add a comment or attach a file)</string>
     <string name="reply_error_message">Error posting: %s</string>

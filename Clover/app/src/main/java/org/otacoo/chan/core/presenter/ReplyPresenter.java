@@ -367,6 +367,7 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
         draft.spoilerImage = draft.spoilerImage
                 && loadable.getSite().boardFeature(Site.BoardFeature.POSTING_SPOILER, board);
         draft.captchaResponse = null;
+        draft.skipPass = false;
 
         // For backwards compatibility with single-file mode
         if (!draft.fileAttachments.isEmpty()) {
@@ -381,6 +382,37 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
         } else {
             makeSubmitCall();
         }
+    }
+
+    public void onSubmitLongClicked() {
+        if (loadable == null) {
+            Toast.makeText(getAppContext(), "Error: No loadable", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!loadable.site.actions().isLoggedIn()) {
+            // Not logged in, just do normal submit
+            onSubmitClicked();
+            return;
+        }
+
+        callback.loadViewsIntoDraft(draft);
+
+        draft.loadable = loadable;
+        draft.spoilerImage = draft.spoilerImage
+                && loadable.getSite().boardFeature(Site.BoardFeature.POSTING_SPOILER, board);
+        draft.captchaResponse = null;
+        draft.skipPass = true;
+
+        if (!draft.fileAttachments.isEmpty()) {
+            Reply.FileAttachment first = draft.fileAttachments.get(0);
+            draft.file = first.file;
+            draft.fileName = first.fileName;
+            draft.spoilerImage = first.spoiler;
+        }
+
+        Toast.makeText(getAppContext(), getString(R.string.skip_pass_toast), Toast.LENGTH_LONG).show();
+        switchPage(Page.AUTHENTICATION, true);
     }
 
     @Override
@@ -760,7 +792,12 @@ public class ReplyPresenter implements AuthenticationLayoutCallback, ImagePickDe
                     callback.setPage(Page.INPUT, animate);
                     break;
                 case AUTHENTICATION:
-                    SiteAuthentication authentication = loadable.site.actions().postAuthenticate();
+                    SiteAuthentication authentication;
+                    if (draft != null && draft.skipPass) {
+                        authentication = SiteAuthentication.fromNewCaptcha("https://boards.4chan.org");
+                    } else {
+                        authentication = loadable.site.actions().postAuthenticate();
+                    }
 
                     // callback.initializeAuthentication already handles reuse/destruction based on type
                     callback.initializeAuthentication(loadable, authentication, this);
