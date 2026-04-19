@@ -27,6 +27,7 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 
 import org.otacoo.chan.R;
@@ -36,8 +37,8 @@ import org.otacoo.chan.utils.AndroidUtils;
 
 public class PostImageThumbnailView extends ThumbnailView implements View.OnLongClickListener {
     private PostImage postImage;
-    private Drawable playIcon;
-    private Rect bounds = new Rect();
+    private final Drawable playIcon;
+    private final Rect bounds = new Rect();
     private float ratio = 0f;
 
     public PostImageThumbnailView(Context context) {
@@ -65,9 +66,13 @@ public class PostImageThumbnailView extends ThumbnailView implements View.OnLong
                         && postImage.imageUrl != null
                         && postImage.type != PostImage.Type.MOVIE
                         && postImage.type != PostImage.Type.SWF;
-                String url = useFullSize
-                        ? postImage.imageUrl.toString()
-                        : postImage.getThumbnailUrl().toString();
+                String url;
+                if (useFullSize) {
+                    url = postImage.imageUrl.toString();
+                } else {
+                    okhttp3.HttpUrl thumbUrl = postImage.getThumbnailUrl();
+                    url = thumbUrl != null ? thumbUrl.toString() : null;
+                }
                 setUrl(url, width, height);
             } else {
                 setUrl(null, width, height);
@@ -80,7 +85,7 @@ public class PostImageThumbnailView extends ThumbnailView implements View.OnLong
     }
 
     @Override
-    public void draw(Canvas canvas) {
+    public void draw(@NonNull Canvas canvas) {
         super.draw(canvas);
 
         if (postImage != null && postImage.type == PostImage.Type.MOVIE && !error) {

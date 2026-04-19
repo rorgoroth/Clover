@@ -17,10 +17,12 @@
  */
 package org.otacoo.chan.ui.adapter;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.otacoo.chan.R;
@@ -42,7 +44,7 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private final PostAdapterCallback postAdapterCallback;
     private final PostCellInterface.PostCellCallback postCellCallback;
-    private RecyclerView recyclerView;
+    private final RecyclerView recyclerView;
 
     private final ThreadStatusCell.Callback statusCellCallback;
     private final List<Post> sourceList = new ArrayList<>();
@@ -69,19 +71,15 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         setHasStableIds(true);
     }
 
+    @NonNull
     @Override
-    public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         switch (viewType) {
             case TYPE_POST:
-                int layout = 0;
-                switch (postViewMode) {
-                    case LIST:
-                        layout = R.layout.cell_post;
-                        break;
-                    case CARD:
-                        layout = R.layout.cell_post_card;
-                        break;
-                }
+                int layout = switch (postViewMode) {
+                    case LIST -> R.layout.cell_post;
+                    case CARD -> R.layout.cell_post_card;
+                };
 
                 PostCellInterface postCell = (PostCellInterface) LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
                 return new PostViewHolder(postCell);
@@ -100,15 +98,17 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     @Override
-    public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         int itemViewType = getItemViewType(position);
         switch (itemViewType) {
             case TYPE_POST:
             case TYPE_POST_STUB:
                 PostViewHolder postViewHolder = (PostViewHolder) holder;
                 Post post = displayList.get(getPostPosition(position));
-                boolean highlight = post == highlightedPost || post.id.equals(highlightedPostId) || post.no == highlightedPostNo ||
-                        post.tripcode.equals(highlightedPostTripcode);
+                boolean highlight = post == highlightedPost
+                        || TextUtils.equals(post.id, highlightedPostId)
+                        || post.no == highlightedPostNo
+                        || TextUtils.equals(post.tripcode, highlightedPostTripcode);
                 postViewHolder.postView.setPost(null,
                         post,
                         postCellCallback,
@@ -242,8 +242,7 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             final int childCount = recyclerView.getChildCount();
             for (int i = 0; i < childCount; i++) {
                 View child = recyclerView.getChildAt(i);
-                if (child instanceof ThreadStatusCell) {
-                    ThreadStatusCell threadStatusCell = (ThreadStatusCell) child;
+                if (child instanceof ThreadStatusCell threadStatusCell) {
                     threadStatusCell.setError(error);
                     threadStatusCell.update();
                 }
@@ -326,7 +325,7 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     public static class PostViewHolder extends RecyclerView.ViewHolder {
-        private PostCellInterface postView;
+        private final PostCellInterface postView;
 
         public PostViewHolder(PostCellInterface postView) {
             super((View) postView);
@@ -335,7 +334,7 @@ public class PostAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     public static class StatusViewHolder extends RecyclerView.ViewHolder {
-        private ThreadStatusCell threadStatusCell;
+        private final ThreadStatusCell threadStatusCell;
 
         public StatusViewHolder(ThreadStatusCell threadStatusCell) {
             super(threadStatusCell);

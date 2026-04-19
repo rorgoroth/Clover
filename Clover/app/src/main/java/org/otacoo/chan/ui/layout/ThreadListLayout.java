@@ -275,14 +275,12 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
 
     public void showPosts(ChanThread thread, PostsFilter filter, boolean initial) {
         boolean threadChanged = showingThread != null && showingThread != thread;
-        boolean loadableChanged = showingThread != null
-                && !showingThread.loadable.equals(thread.loadable);
         showingThread = thread;
 
         // Always reset so bottom-reached can re-fire for fresh data
         lastPostCount = -1;
 
-        if (initial || threadChanged || loadableChanged) {
+        if (initial || threadChanged) {
             threadLastViewed = thread.loadable.lastViewed;
             reply.bindLoadable(showingThread.loadable);
 
@@ -305,7 +303,7 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
 
         setFastScroll(true);
 
-        final boolean wasAtBottom = !initial && !threadChanged && !loadableChanged && scrolledToBottom();
+        final boolean wasAtBottom = !initial && !threadChanged && scrolledToBottom();
 
         postAdapter.setThread(thread, filter, threadLastViewed);
 
@@ -524,8 +522,7 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
         int lastPostAdapterPos = postAdapter.getScrollPosition(
                 postAdapter.getDisplayList().size() - 1);
         View lastPostView = layoutManager.findViewByPosition(lastPostAdapterPos);
-        boolean result = lastPostView != null;
-        return result;
+        return lastPostView != null;
     }
 
     public void cleanup() {
@@ -550,6 +547,7 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
             View view = layoutManager.getChildAt(i);
             if (view instanceof PostCellInterface postView) {
                 Post post = postView.getPost();
+                if (post == null) continue;
 
                 if (!post.images.isEmpty()) {
                     for (PostImage image : post.images) {
@@ -571,6 +569,7 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
             View view = layoutManager.getChildAt(i);
             if (view instanceof PostCellInterface postView) {
                 Post post = postView.getPost();
+                if (post == null) continue;
 
                 if (!post.images.isEmpty()) {
                     for (PostImage image : post.images) {
@@ -683,15 +682,16 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     public int[] getIndexAndTop() {
         int index = 0;
         int top = 0;
-        assert recyclerView.getLayoutManager() != null;
-        if (recyclerView.getLayoutManager().getChildCount() > 0) {
+        if (recyclerView.getLayoutManager() != null
+                && recyclerView.getLayoutManager().getChildCount() > 0) {
             View topChild = recyclerView.getLayoutManager().getChildAt(0);
 
-            assert topChild != null;
-            index = ((RecyclerView.LayoutParams) topChild.getLayoutParams()).getViewLayoutPosition();
+            if (topChild != null) {
+                index = ((RecyclerView.LayoutParams) topChild.getLayoutParams()).getViewLayoutPosition();
 
-            RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) topChild.getLayoutParams();
-            top = layoutManager.getDecoratedTop(topChild) - params.topMargin - recyclerView.getPaddingTop();
+                RecyclerView.LayoutParams params = (RecyclerView.LayoutParams) topChild.getLayoutParams();
+                top = layoutManager.getDecoratedTop(topChild) - params.topMargin - recyclerView.getPaddingTop();
+            }
         }
 
         return new int[]{index, top};
