@@ -201,6 +201,7 @@ public class StartActivity extends AppCompatActivity implements
     protected void onResume() {
         super.onResume();
         resultHelper.onResume();
+        versionHandler.checkPendingInstall();
     }
 
     @Override

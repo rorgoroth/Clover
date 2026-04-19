@@ -64,6 +64,7 @@ public class UpdateManager {
     FileCache fileCache;
 
     private UpdateCallback callback;
+    private Install pendingInstall;
 
     @SuppressWarnings("this-escape")
     public UpdateManager(UpdateCallback callback) {
@@ -254,15 +255,18 @@ public class UpdateManager {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.setDataAndType(contentUri, "application/vnd.android.package-archive");
 
+        pendingInstall = install;
         callback.onUpdateOpenInstallScreen(intent);
+    }
 
-        // Then open the dialog that asks to retry and calls this method again.
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                callback.openUpdateRetryDialog(install);
-            }
-        }, 500);
+    // Called when the activity resumes. If an install was pending (the user returned
+    // from the system installer without the app being replaced), show the retry dialog.
+    public void checkPendingInstall() {
+        if (pendingInstall != null) {
+            Install install = pendingInstall;
+            pendingInstall = null;
+            callback.openUpdateRetryDialog(install);
+        }
     }
 
     public static class Update {

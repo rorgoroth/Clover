@@ -130,6 +130,10 @@ public class VersionHandler implements UpdateManager.UpdateCallback {
         return updateManager.isUpdatingAvailable();
     }
 
+    public void checkPendingInstall() {
+        updateManager.checkPendingInstall();
+    }
+
     public void manualUpdateCheck() {
         updateManager.runUpdateApi(true);
     }
