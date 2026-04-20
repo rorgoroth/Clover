@@ -965,9 +965,10 @@ public class WatchManager {
                 }
             }
 
-            // Now get a list of posts that have a quote to a saved reply
+            // Now get a list of posts that have a quote to a saved reply (excludes our own posts)
             out:
             for (Post post : thread.posts) {
+                if (post.isSavedReply) continue;
                 for (Integer no : post.repliesTo) {
                     if (savedReplies.contains(no)) {
                         quotes.add(post);
@@ -997,6 +998,15 @@ public class WatchManager {
             }
             if (pin.quoteLastCount > pin.quoteNewCount) {
                 pin.quoteLastCount = pin.quoteNewCount;
+            }
+
+            // Advance the read cursor past our own posts so they don't count as "unread"
+            if (!isFirstLoad) {
+                for (int i = pin.watchLastCount; i < posts.size(); i++) {
+                    if (posts.get(i).isSavedReply) {
+                        pin.watchLastCount++;
+                    }
+                }
             }
 
             if (!isFirstLoad) {
