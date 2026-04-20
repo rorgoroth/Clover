@@ -85,7 +85,14 @@ public class ThemeHelper {
 
     private Theme createThemeFromCustom(ChanSettings.CustomTheme custom) {
         Theme theme;
-        int styleRes = "dark".equals(custom.baseTheme) ? R.style.Chan_Theme_Dark : R.style.Chan_Theme;
+        int styleRes;
+        if ("black".equals(custom.baseTheme)) {
+            styleRes = R.style.Chan_Theme_Black;
+        } else if ("dark".equals(custom.baseTheme)) {
+            styleRes = R.style.Chan_Theme_Dark;
+        } else {
+            styleRes = R.style.Chan_Theme;
+        }
         if (custom.isLightTheme) {
             theme = new Theme(custom.displayName, custom.name, styleRes, PrimaryColor.BLUE);
         } else {
@@ -207,7 +214,7 @@ public class ThemeHelper {
         if ("auto".equals(themeName)) {
             int currentNightMode = AndroidUtils.getRes().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
             night = currentNightMode == Configuration.UI_MODE_NIGHT_YES;
-            themeName = night ? "dark" : "light";
+            themeName = night ? ChanSettings.autoThemeNight.get() : ChanSettings.autoThemeDay.get();
         }
 
         for (Theme theme : themes) {
@@ -256,6 +263,13 @@ public class ThemeHelper {
     @AnyThread
     public Theme getTheme() {
         return theme;
+    }
+
+    public Theme findThemeByName(String name) {
+        for (Theme t : themes) {
+            if (t.name.equals(name)) return t;
+        }
+        return null;
     }
 
     public List<Theme> getThemes() {

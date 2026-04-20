@@ -721,6 +721,9 @@ Re-enable this permission in the app settings if you permanently disabled it."
 Tap the toolbar menu to change its color."
     </string>
     <string name="setting_theme_accent">Tap here to change FAB color</string>
+    <string name="setting_theme_auto_pick_title">Auto theme settings</string>
+    <string name="setting_theme_auto_day">Day theme</string>
+    <string name="setting_theme_auto_night">Night theme</string>
     <string name="setting_theme_reset_done">Theme selection reset to defaults.</string>
     <string name="setting_theme_add">Create new theme</string>
     <string name="setting_theme_create_name">Theme name</string>

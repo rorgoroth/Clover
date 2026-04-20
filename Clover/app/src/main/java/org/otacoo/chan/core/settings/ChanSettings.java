@@ -183,6 +183,8 @@ public class ChanSettings {
 
     private static final StringSetting theme;
     private static final StringSetting customThemes;
+    public static final StringSetting autoThemeDay;
+    public static final StringSetting autoThemeNight;
     public static final OptionsSetting<LayoutMode> layoutMode;
     public static final StringSetting fontSize;
     public static final BooleanSetting fontCondensed;
@@ -291,6 +293,8 @@ public class ChanSettings {
 
         theme = new StringSetting(p, "preference_theme", "auto");
         customThemes = new StringSetting(p, "preference_custom_themes", "[]");
+        autoThemeDay = new StringSetting(p, "preference_auto_theme_day", "light");
+        autoThemeNight = new StringSetting(p, "preference_auto_theme_night", "dark");
 
         layoutMode = new OptionsSetting<>(p, "preference_layout_mode", LayoutMode.class, LayoutMode.AUTO);
 

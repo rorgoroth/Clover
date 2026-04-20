@@ -281,6 +281,12 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
         int position = pager.getCurrentItem();
         Theme theme = themes.get(position);
 
+        // Reset auto theme day/night picks to defaults
+        if ("auto".equals(theme.name)) {
+            ChanSettings.autoThemeDay.set("light");
+            ChanSettings.autoThemeNight.set("dark");
+        }
+
         // Reset theme object and colors back to style defaults
         theme.colorOverrides.clear();
         theme.resolveSpanColors();
@@ -437,11 +443,15 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
         root.addView(baseLabel);
 
         Spinner baseSpinner = new Spinner(context);
-        String[] bases = {"Light", "Dark"};
+        String[] bases = {"Light", "Dark", "Black"};
         ArrayAdapter<String> baseAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, bases);
         baseAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         baseSpinner.setAdapter(baseAdapter);
-        if (existing != null) baseSpinner.setSelection("dark".equals(existing.baseTheme) ? 1 : 0);
+        if (existing != null) {
+            if ("black".equals(existing.baseTheme)) baseSpinner.setSelection(2);
+            else if ("dark".equals(existing.baseTheme)) baseSpinner.setSelection(1);
+            else baseSpinner.setSelection(0);
+        }
         root.addView(baseSpinner);
 
         Map<String, Integer> existingOverrides = sanitizeColorOverrides(existing != null ? existing.colorOverrides : null);
@@ -537,8 +547,9 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
                         return;
                     }
                     
-                    boolean isLight = baseSpinner.getSelectedItemPosition() == 0;
-                    String baseTheme = isLight ? "light" : "dark";
+                    int baseIndex = baseSpinner.getSelectedItemPosition();
+                    boolean isLight = baseIndex == 0;
+                    String baseTheme = baseIndex == 2 ? "black" : (isLight ? "light" : "dark");
                     String themeId = existing != null ? existing.name : "custom_" + System.currentTimeMillis();
                     
                     ChanSettings.CustomTheme custom = new ChanSettings.CustomTheme(name, themeId, baseTheme, isLight, overrides);
@@ -618,6 +629,83 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
         return color != null ? color : fallback;
     }
 
+    private void showAutoThemePickerDialog() {
+        List<String> themeNames = new ArrayList<>();
+        List<String> themeDisplayNames = new ArrayList<>();
+        for (Theme t : themes) {
+            if (!"auto".equals(t.name)) {
+                themeNames.add(t.name);
+                themeDisplayNames.add(t.displayName);
+            }
+        }
+
+        String[] displayArr = themeDisplayNames.toArray(new String[0]);
+
+        String currentDay = ChanSettings.autoThemeDay.get();
+        String currentNight = ChanSettings.autoThemeNight.get();
+
+        int dayIndex = Math.max(0, themeNames.indexOf(currentDay));
+        int nightIndex = Math.max(0, themeNames.indexOf(currentNight));
+        final int[] selectedDay = {dayIndex};
+        final int[] selectedNight = {nightIndex};
+
+        LinearLayout root = new LinearLayout(context);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(16);
+        root.setPadding(pad, pad, pad, pad);
+
+        TextView dayLabel = new TextView(context);
+        dayLabel.setText(R.string.setting_theme_auto_day);
+        dayLabel.setPadding(0, 0, 0, dp(4));
+        root.addView(dayLabel);
+
+        Spinner daySpinner = new Spinner(context);
+        ArrayAdapter<String> dayAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, displayArr);
+        dayAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        daySpinner.setAdapter(dayAdapter);
+        daySpinner.setSelection(dayIndex);
+        daySpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int pos, long id) {
+                selectedDay[0] = pos;
+            }
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        root.addView(daySpinner);
+
+        TextView nightLabel = new TextView(context);
+        nightLabel.setText(R.string.setting_theme_auto_night);
+        nightLabel.setPadding(0, dp(12), 0, dp(4));
+        root.addView(nightLabel);
+
+        Spinner nightSpinner = new Spinner(context);
+        ArrayAdapter<String> nightAdapter = new ArrayAdapter<>(context, android.R.layout.simple_spinner_item, displayArr);
+        nightAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        nightSpinner.setAdapter(nightAdapter);
+        nightSpinner.setSelection(nightIndex);
+        nightSpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int pos, long id) {
+                selectedNight[0] = pos;
+            }
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        });
+        root.addView(nightSpinner);
+
+        new AlertDialog.Builder(context)
+                .setTitle(R.string.setting_theme_auto_pick_title)
+                .setView(root)
+                .setPositiveButton(R.string.ok, (dlg, which) -> {
+                    ChanSettings.autoThemeDay.set(themeNames.get(selectedDay[0]));
+                    ChanSettings.autoThemeNight.set(themeNames.get(selectedNight[0]));
+                    adapter.notifyDataSetChanged();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
     private class Adapter extends ViewPagerAdapter {
         public Adapter() {
         }
@@ -640,7 +728,10 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
             final Toolbar toolbar = new Toolbar(themeContext);
             
             final View.OnClickListener colorClick = v -> {
-                if (theme.name.equals("auto")) return; // Disable for Auto theme
+                if (theme.name.equals("auto")) {
+                    showAutoThemePickerDialog();
+                    return;
+                }
 
                 if (theme.name.startsWith("custom_")) {
                     showCreateThemeDialog(themeHelper.getCustomTheme(theme.name));
@@ -668,20 +759,16 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
             });
             
             if (theme.name.equals("auto")) {
-                Theme lightTheme = null;
-                Theme darkTheme = null;
-                for (Theme t : themes) {
-                    if (t.name.equals("light")) lightTheme = t;
-                    if (t.name.equals("dark")) darkTheme = t;
-                }
+                Theme dayTheme = themeHelper.findThemeByName(ChanSettings.autoThemeDay.get());
+                Theme nightTheme = themeHelper.findThemeByName(ChanSettings.autoThemeNight.get());
                 
-                if (lightTheme != null && darkTheme != null) {
-                    int lightColor = lightTheme.primaryColor.color;
-                    int darkColor = darkTheme.primaryColor.color;
+                if (dayTheme != null && nightTheme != null) {
+                    int dayColor = dayTheme.primaryColor.color;
+                    int nightColor = nightTheme.primaryColor.color;
                     
                     GradientDrawable gradient = new GradientDrawable(
                             GradientDrawable.Orientation.LEFT_RIGHT,
-                            new int[]{lightColor, lightColor, darkColor, darkColor}
+                            new int[]{dayColor, dayColor, nightColor, nightColor}
                             );
                     toolbar.setBackground(gradient);
                 } else {
@@ -716,18 +803,14 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
                 LinearLayout split = new LinearLayout(context);
                 split.setOrientation(LinearLayout.HORIZONTAL);
 
-                Theme lightTheme = null;
-                Theme darkTheme = null;
-                for (Theme t : themes) {
-                    if (t.name.equals("light")) lightTheme = t;
-                    if (t.name.equals("dark")) darkTheme = t;
-                }
+                Theme dayTheme = themeHelper.findThemeByName(ChanSettings.autoThemeDay.get());
+                Theme nightTheme = themeHelper.findThemeByName(ChanSettings.autoThemeNight.get());
 
-                if (lightTheme != null) {
-                    split.addView(createPreviewSide(lightTheme), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+                if (dayTheme != null) {
+                    split.addView(createPreviewSide(dayTheme), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
                 }
-                if (darkTheme != null) {
-                    split.addView(createPreviewSide(darkTheme), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+                if (nightTheme != null) {
+                    split.addView(createPreviewSide(nightTheme), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
                 }
 
                 linearLayout.addView(split, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
