@@ -240,16 +240,21 @@ public class ThumbnailView extends View {
                 try (ResponseBody body = response.body()) {
                     if (body == null) throw new IOException("Empty body");
 
-                    byte[] data = body.bytes();
-
+                    okio.BufferedSource source = body.source();
                     BitmapFactory.Options opts = new BitmapFactory.Options();
                     opts.inJustDecodeBounds = true;
-                    BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+                    // peek() reads ahead without consuming the underlying stream
+                    try (java.io.InputStream boundsStream = source.peek().inputStream()) {
+                        BitmapFactory.decodeStream(boundsStream, null, opts);
+                    }
                     opts.inJustDecodeBounds = false;
                     opts.inSampleSize = calcSampleSize(opts.outWidth, opts.outHeight, width, height);
 
-                    Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, opts);
-                    
+                    Bitmap bitmap;
+                    try (java.io.InputStream stream = source.inputStream()) {
+                        bitmap = BitmapFactory.decodeStream(stream, null, opts);
+                    }
+
                     if (bitmap != null) {
                         sMemoryCache.put(url, bitmap);
                         AndroidUtils.runOnUiThread(() -> {

@@ -551,8 +551,10 @@ public class ImageViewerController extends Controller implements ImageViewerPres
                         if (response.isSuccessful()) {
                             try (ResponseBody body = response.body()) {
                                 if (body != null) {
-                                    byte[] data = body.bytes();
-                                    Bitmap bitmap = BitmapFactory.decodeByteArray(data, 0, data.length);
+                                    Bitmap bitmap;
+                                    try (java.io.InputStream stream = body.byteStream()) {
+                                        bitmap = BitmapFactory.decodeStream(stream);
+                                    }
                                     if (bitmap != null) {
                                         AndroidUtils.runOnUiThread(() -> {
                                             if (alive && startAnimation != null) {
