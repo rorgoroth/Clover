@@ -148,7 +148,7 @@ public class Storage {
             return true;
         }
         saveLocationTreeUriFolder = createDirectoryForSafUri(
-                Uri.parse(saveLocationTreeUri.get()), folders);
+                rootDocUri(Uri.parse(saveLocationTreeUri.get())), folders);
         return saveLocationTreeUriFolder != null;
     }
 
