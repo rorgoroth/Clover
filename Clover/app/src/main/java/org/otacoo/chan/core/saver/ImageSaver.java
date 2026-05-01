@@ -156,15 +156,18 @@ public class ImageSaver implements ImageSaveTask.ImageSaveTaskCallback {
     }
 
     public void addTasks(final List<ImageSaveTask> tasks, final String[] folders, Runnable success) {
+        if (tasks.size() > 1) {
+            AndroidUtils.runOnUiThread(() -> Toast.makeText(getAppContext(), R.string.image_save_preparing, Toast.LENGTH_SHORT).show());
+        }
+
         storage.prepareForSave(folders, () -> {
+            if (success != null) {
+                AndroidUtils.runOnUiThread(success);
+            }
+
             if (!needsRequestExternalStoragePermission()) {
                 // Move the actual task queueing to the executor thread to avoid blocking UI with Storage.obtain... calls
-                executor.execute(() -> {
-                    queueTasks(tasks, folders);
-                    if (success != null) {
-                        AndroidUtils.runOnUiThread(success);
-                    }
-                });
+                executor.execute(() -> queueTasks(tasks, folders));
             } else {
                 requestPermission(granted -> {
                     if (granted) {

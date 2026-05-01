@@ -428,6 +428,7 @@ A workaround is to use an external media player or enable Clover's libvpx decode
     <string name="report_screen">Report %1$s</string>
 
     <string name="image_save_notification_downloading">Downloading images</string>
+    <string name="image_save_preparing">Preparing download…</string>
     <string name="image_save_notification_cancel">Tap to cancel</string>
     <string name="image_save_saved">Image saved</string>
     <string name="image_save_as">Saved as \"%1$s\"</string>
