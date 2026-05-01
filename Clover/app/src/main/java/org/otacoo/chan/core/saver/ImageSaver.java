@@ -178,6 +178,12 @@ public class ImageSaver implements ImageSaveTask.ImageSaveTaskCallback {
     }
 
     private void queueTasks(final List<ImageSaveTask> tasks, final String[] folders) {
+        if (!storage.prepareFolderInBackground(folders)) {
+            Logger.e(TAG, "Failed to prepare folder in background for SAF");
+            AndroidUtils.runOnUiThread(() -> showStatusToast(null, false));
+            return;
+        }
+
         totalTasks = 0;
 
         for (ImageSaveTask task : tasks) {
