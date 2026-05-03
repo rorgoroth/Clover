@@ -138,6 +138,10 @@ public class ColorPickerView extends View {
                     getParent().requestDisallowInterceptTouchEvent(true);
                 }
                 trackingValue = valueRect.contains(x, y);
+
+                if (!trackingValue && Math.hypot(x - cx, y - cy) > Math.min(cx, cy) - dp(8)) {
+                    return false;
+                }
                 // fall through
             case MotionEvent.ACTION_MOVE:
                 if (trackingValue) {
@@ -201,8 +205,9 @@ public class ColorPickerView extends View {
         
         // Draw value bar (Black -> Color -> White)
         float margin = dp(16);
+        float bottomMargin = dp(8);
         float barHeight = dp(24);
-        valueRect.set(margin, getHeight() - barHeight - margin, getWidth() - margin, getHeight() - margin);
+        valueRect.set(margin, getHeight() - barHeight - bottomMargin, getWidth() - margin, getHeight() - bottomMargin);
         
         int[] gradientColors;
         if (achromaticMode) {
