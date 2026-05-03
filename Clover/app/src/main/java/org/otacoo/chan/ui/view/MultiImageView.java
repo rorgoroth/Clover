@@ -134,6 +134,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     private boolean videoError = false;
     private int vp9FallbackStage = 0; // 0=initial, 1=libvpx retry, 2=c2.android retry
     private ExoPlayer exoPlayer;
+    private android.webkit.WebView fallbackWebView;
 
     private View playerControllerContainer;
     private View playerController;
@@ -681,13 +682,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         DefaultExtractorsFactory extractorsFactory = new DefaultExtractorsFactory();
         DefaultMediaSourceFactory mediaSourceFactory = new DefaultMediaSourceFactory(getContext(), extractorsFactory);
 
-        int bufferForPlayback = Math.max(100, Math.min(10000, ChanSettings.videoBufferForPlayback.get()));
         DefaultLoadControl loadControl = new DefaultLoadControl.Builder()
-                .setBufferDurationsMs(
-                        50000,
-                        120000,
-                        bufferForPlayback,
-                        10000)
                 .build();
 
         exoPlayer = new ExoPlayer.Builder(new NoMusicServiceCommandContext(getContext()), renderersFactory)
@@ -760,6 +755,16 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                         }
                         startExoPlayer(file);
                         return;
+                    } else if (vp9FallbackStage == maxStage && ChanSettings.videoWebViewFallback.get()) {
+                        vp9FallbackStage++;
+                        handler.removeCallbacks(updateTimeTask);
+                        handler.removeCallbacks(hideControllerTask);
+                        if (exoPlayer != null) {
+                            exoPlayer.release();
+                            exoPlayer = null;
+                        }
+                        startWebViewPlayer(file);
+                        return;
                     }
                 }
                 onVideoError();
@@ -769,6 +774,39 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         exoPlayer.setVolume(isMuted ? 0f : 1f);
         exoPlayer.setPlayWhenReady(true);
         exoPlayer.prepare();
+    }
+
+    private void startWebViewPlayer(File file) {
+        fallbackWebView = new android.webkit.WebView(getContext());
+        fallbackWebView.setBackgroundColor(Color.TRANSPARENT);
+        fallbackWebView.getSettings().setJavaScriptEnabled(false);
+        fallbackWebView.getSettings().setMediaPlaybackRequiresUserGesture(false);
+        fallbackWebView.getSettings().setAllowFileAccess(true);
+        fallbackWebView.setWebChromeClient(new android.webkit.WebChromeClient());
+
+        LayoutParams lp = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+        lp.gravity = Gravity.CENTER;
+
+        Uri fileUri = Uri.fromFile(file);
+        String html = "<html><head><style>" +
+                "body { margin: 0; background-color: transparent; display: flex; justify-content: center; align-items: center; height: 100vh; }" +
+                "video { max-width: 100%; max-height: 100%; outline: none; }" +
+                "</style></head><body>" +
+                "<video controls autoplay loop src=\"" + fileUri.toString() + "\"></video>" +
+                "</body></html>";
+        fallbackWebView.loadDataWithBaseURL("file://", html, "text/html", "UTF-8", null);
+
+        if (exoPlayerView != null) {
+            removeView(exoPlayerView);
+        }
+        if (playerRoot != null) {
+            removeView(playerRoot);
+        }
+
+        addView(fallbackWebView, 0, lp);
+        onModeLoaded(Mode.MOVIE, fallbackWebView);
+
+        Toast.makeText(getContext(), "Unsupported video format: using WebView to decode", Toast.LENGTH_LONG).show();
     }
 
     private void setupPlayerController() {
@@ -963,6 +1001,16 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             exoPlayer = null;
         }
         exoPlayerView = null;
+        cleanupWebView();
+    }
+
+    private void cleanupWebView() {
+        if (fallbackWebView != null) {
+            removeView(fallbackWebView);
+            fallbackWebView.loadUrl("about:blank");
+            fallbackWebView.destroy();
+            fallbackWebView = null;
+        }
     }
 
     public void toggleTransparency() {
@@ -1143,6 +1191,8 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             videoRequest.cancel();
             videoRequest = null;
         }
+
+        cleanupWebView();
 
         // Stop all active view content
         for (int i = 0; i < getChildCount(); i++) {

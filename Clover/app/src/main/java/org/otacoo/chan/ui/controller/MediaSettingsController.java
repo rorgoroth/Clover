@@ -197,11 +197,10 @@ public class MediaSettingsController extends SettingsController implements
             video.add(new ListSettingView<>(this, ChanSettings.vp9ExtensionMode,
                     R.string.setting_vp9_extension_mode, vp9ExtModes));
 
-            video.add(new IntegerSettingView(this,
-                    ChanSettings.videoBufferForPlayback,
-                    R.string.setting_video_buffer_for_playback,
-                    R.string.setting_video_buffer_for_playback_description,
-                    100, 10000));
+            video.add(new BooleanSettingView(this,
+                    ChanSettings.videoWebViewFallback,
+                    R.string.setting_video_webview_fallback,
+                    R.string.setting_video_webview_fallback_description));
 
             groups.add(video);
         }

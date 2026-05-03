@@ -390,7 +390,7 @@ If any other filters are enabled for it, it will not work.
     <string name="video_playback_warning">
 "The WebM video failed to play. This might be a problem with the hardware of your phone.
 
-A workaround is to use an external media player or enable Clover's libvpx decoder in the options."
+A workaround is to use an external media player, enable Clover's libvpx decoder in the options, or use the WebView fallback."
     </string>
     <string name="video_playback_ignore">Don\'t show again</string>
 
@@ -701,8 +701,8 @@ If disabled, save the image with the filename the uploader assigned."
     <string name="setting_vp9_extension_mode_default">Default - try system first, fall back to libvpx on error</string>
     <string name="setting_vp9_extension_mode_prefer">Prefer - always use libvpx for every VP9 video</string>
     <string name="setting_vp9_extension_mode_off">Off - system decoders only</string>
-    <string name="setting_video_buffer_for_playback">Buffer before playback (ms)</string>
-    <string name="setting_video_buffer_for_playback_description">Milliseconds buffered before playback starts (100-10000)</string>
+    <string name="setting_video_webview_fallback">Use WebView as fallback player</string>
+    <string name="setting_video_webview_fallback_description">Will try to play the video using the internal WebView if the video format is not supported</string>
 
     <!-- Save location settings -->
     <string name="save_location_screen">Save location</string>
