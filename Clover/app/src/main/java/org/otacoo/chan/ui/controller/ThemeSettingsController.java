@@ -323,6 +323,9 @@ public class ThemeSettingsController extends Controller implements View.OnClickL
         GridLayout grid = new GridLayout(context);
         grid.setColumnCount(5);
         grid.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
+        LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        gridLp.gravity = Gravity.CENTER_HORIZONTAL;
+        grid.setLayoutParams(gridLp);
 
         final ThemeHelper.PrimaryColor[] currentSelection = {initialColor};
         final List<View> squareViews = new ArrayList<>();
