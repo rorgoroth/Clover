@@ -584,6 +584,7 @@ Crash reports do not collect any personally identifiable information."
     <string name="settings_group_general">General</string>
     <string name="setting_auto_refresh_thread">Auto refresh threads</string>
     <string name="setting_confirm_exit">Confirm before exit</string>
+    <string name="setting_disable_back_button">Disable Back button in thread view</string>
     <string name="setting_highlight_open_thread">Highlight currently open thread</string>
     <string name="setting_controller_swipeable">Allow screens to be swiped away</string>
     <string name="setting_clear_thread_hides">Clear all thread hides</string>

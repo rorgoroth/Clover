@@ -60,6 +60,9 @@ public class BrowsingSettingsController extends SettingsController {
             boards.add(new BooleanSettingView(this, ChanSettings.confirmExit,
                     R.string.setting_confirm_exit, 0));
 
+            requiresRestart.add(boards.add(new BooleanSettingView(this, ChanSettings.disableBackButton,
+                    R.string.setting_disable_back_button, 0)));
+
             requiresRestart.add(boards.add(new BooleanSettingView(this,
                     ChanSettings.controllerSwipeable,
                     R.string.setting_controller_swipeable, 0)));

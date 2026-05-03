@@ -231,6 +231,7 @@ public class ChanSettings {
     public static final BooleanSetting revealTextSpoilers;
     public static final BooleanSetting repliesButtonsBottom;
     public static final BooleanSetting confirmExit;
+    public static final BooleanSetting disableBackButton;
     public static final BooleanSetting tapNoReply;
     public static final BooleanSetting tapQuotelinkSpan;
     public static final BooleanSetting volumeKeysScrolling;
@@ -345,6 +346,7 @@ public class ChanSettings {
         revealTextSpoilers = new BooleanSetting(p, "preference_reveal_text_spoilers", false);
         repliesButtonsBottom = new BooleanSetting(p, "preference_buttons_bottom", false);
         confirmExit = new BooleanSetting(p, "preference_confirm_exit", true);
+        disableBackButton = new BooleanSetting(p, "preference_disable_back_button", false);
         tapNoReply = new BooleanSetting(p, "preference_tap_no_reply", false);
         tapQuotelinkSpan = new BooleanSetting(p, "preference_tap_quotelink_span", true);
         volumeKeysScrolling = new BooleanSetting(p, "preference_volume_key_scrolling", false);
@@ -354,7 +356,7 @@ public class ChanSettings {
         neverHideToolbar = new BooleanSetting(p, "preference_never_hide_toolbar", false);
         toolbarBottom = new BooleanSetting(p, "preference_toolbar_bottom", false);
         controllerSwipeable = new BooleanSetting(p, "preference_controller_swipeable", true);
-        pinnedSearchesEnabled = new BooleanSetting(p, "preference_pinned_searches_enabled", false);
+        pinnedSearchesEnabled = new BooleanSetting(p, "preference_pinned_searches_enabled", true);
         pinnedSearchesEnabled.addCallback((setting, value) ->
                 EventBus.getDefault().post(new SettingChanged<>(pinnedSearchesEnabled)));
 //        saveBoardFolder = new BooleanSetting(p, "preference_save_subboard", false);

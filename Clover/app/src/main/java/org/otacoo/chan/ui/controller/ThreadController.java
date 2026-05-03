@@ -69,6 +69,10 @@ public abstract class ThreadController extends Controller implements
         EventBus.getDefault().register(this);
 
         navigation.handlesToolbarInset = true;
+        
+        if (ChanSettings.disableBackButton.get()) {
+            navigation.hasBack = false;
+        }
 
         threadLayout = (ThreadLayout) LayoutInflater.from(context).inflate(R.layout.layout_thread, null);
         threadLayout.create(this);
