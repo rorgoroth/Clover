@@ -30,7 +30,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <string name="clear">Clear</string>
 
     <string name="pin_search_title">Pin Catalog Search</string>
-    <string name="pin_search_term_hint">Search term (e.g. game)</string>
+    <string name="pin_search_term_hint">Search term</string>
 
     <string name="mark_as_my_post">Mark as my post</string>
     <string name="unmark_as_my_post">Forget post</string>
