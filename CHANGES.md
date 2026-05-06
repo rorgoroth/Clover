@@ -1,3 +1,31 @@
+## 2026-05-06 – v3.3.25
+
+- **Themes:** 
+  - Improved color wheel and bar touch surfaces to prevent accidental touches (issue #26)
+  - Centered color swatches and removed fully black swatch (issue #26)
+- Bottom-most floating menus will now be correctly aligned (issue #26)
+- Shift FAB buttons up to avoid appearing behind the new posts toast (issue #26)
+
+- **New option:** Use WebView as fallback player
+  - Will try to play video files with the internal WebView when an unsupported video format is found
+
+- **New option:** Disable Back button in thead view (issue #27)
+  - Wil disable the back arrow when in thread view so that the bookmarks drawer can always be opened
+
+- **Removed options:**
+  - Removed the option for *Buffer before playback*, will use the default device buffers
+  - Remove *Enable pinned searches*, will now always be enabled and part of Clover (issue #27)
+
+- Refactored the option *Load full size thumbnails*, will now act similar to the other Media loading options
+
+- Refactored the bookmarks drawer (issue #27):
+  - The bookmarks drawer settings buttons will now always be fixed, only the pin list will scroll
+  - When using the bottom toolbar, the whole list, including buttons, will be inversed
+  - *Note 1:* Swiping down on the bookmarks drawer allows you to fetch new posts
+  - *Note 2:* Existing pins in the list will not be inversed when switching toolbars, only newly added ones
+
+Thank you @tetra65
+
 ## 2026-05-01 – v3.3.24
 
 - **Album view:**
