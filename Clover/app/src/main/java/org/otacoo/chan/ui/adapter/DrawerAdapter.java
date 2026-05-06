@@ -163,16 +163,21 @@ public class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     }
 
     private int getPinOffset() {
-        int offset = ChanSettings.toolbarBottom.get() ? 1 : 2; // HEADER only, or SETTINGS+HEADER
-        if (showPinnedSearches() && !pinnedSearches.isEmpty()) {
-            offset += pinnedSearches.size();
-            offset += 1; // TYPE_DIVIDER
+        int offset = 0;
+        if (!ChanSettings.toolbarBottom.get()) {
+            if (showPinnedSearches() && !pinnedSearches.isEmpty()) {
+                offset += pinnedSearches.size();
+                offset += 1; // TYPE_DIVIDER
+            }
         }
         return offset;
     }
 
     private int getSearchPinOffset() {
-        return ChanSettings.toolbarBottom.get() ? 1 : 2;
+        if (ChanSettings.toolbarBottom.get()) {
+            return pins.size() + 1; // Pins + Divider
+        }
+        return 0;
     }
 
     private boolean showPinnedSearches() {
@@ -182,10 +187,6 @@ public class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         switch (viewType) {
-            case TYPE_SETTINGS:
-                return new SettingsHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.cell_settings, parent, false));
-            case TYPE_HEADER:
-                return new HeaderHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.cell_header, parent, false));
             case TYPE_SEARCH_PIN:
                 return new SearchPinViewHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.cell_pin, parent, false));
             case TYPE_DIVIDER:
@@ -199,20 +200,6 @@ public class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     @Override
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         switch (holder.getItemViewType()) {
-            case TYPE_SETTINGS:
-                SettingsHolder settingsHolder = (SettingsHolder) holder;
-                theme().settingsDrawable.apply(settingsHolder.imageSettings);
-                theme().historyDrawable.apply(settingsHolder.imageHistory);
-
-                break;
-            case TYPE_HEADER:
-                HeaderHolder headerHolder = (HeaderHolder) holder;
-                headerHolder.text.setText(R.string.drawer_pinned);
-                theme().clearDrawable.apply(headerHolder.clear);
-                headerHolder.add.setVisibility(showPinnedSearches() ? View.VISIBLE : View.GONE);
-                theme().pinSearchDrawable.apply(headerHolder.add);
-
-                break;
             case TYPE_SEARCH_PIN:
                 SearchPinViewHolder searchPinHolder = (SearchPinViewHolder) holder;
                 int searchIndex = position - getSearchPinOffset();
@@ -250,8 +237,7 @@ public class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
 
     @Override
     public int getItemCount() {
-        int count = ChanSettings.toolbarBottom.get() ? 0 : 1; // SETTINGS only when not bottom toolbar
-        count += 1; // HEADER
+        int count = 0;
         if (showPinnedSearches() && !pinnedSearches.isEmpty()) {
             count += pinnedSearches.size();
             count += 1; // DIVIDER
@@ -280,22 +266,23 @@ public class DrawerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder>
     @Override
     public int getItemViewType(int position) {
         if (ChanSettings.toolbarBottom.get()) {
-            // Settings row is a fixed footer outside the RecyclerView
-            if (position == 0) return TYPE_HEADER;
-            int current = 1; // HEADER
+            int current = 0;
+            if (position < pins.size()) {
+                return TYPE_PIN;
+            }
+            current += pins.size();
+            
             if (showPinnedSearches() && !pinnedSearches.isEmpty()) {
+                if (position == current) return TYPE_DIVIDER;
+                current += 1;
+                
                 if (position < current + pinnedSearches.size()) {
                     return TYPE_SEARCH_PIN;
                 }
-                current += pinnedSearches.size();
-                if (position == current) return TYPE_DIVIDER;
-                current += 1;
             }
-            return TYPE_PIN;
+            return TYPE_PIN; // Fallback
         } else {
-            if (position == 0) return TYPE_SETTINGS;
-            if (position == 1) return TYPE_HEADER;
-            int current = 2; // SETTINGS + HEADER
+            int current = 0;
             if (showPinnedSearches() && !pinnedSearches.isEmpty()) {
                 if (position < current + pinnedSearches.size()) {
                     return TYPE_SEARCH_PIN;

@@ -212,14 +212,22 @@ public class WatchManager {
             }
         }
 
-        // Default order is 0.
+        // Default order depends on the toolbar position
         if (pin.order < 0) {
-            pin.order = 0;
+            if (ChanSettings.toolbarBottom.get()) {
+                pin.order = pins.size(); // Bottom toolbar: show at bottom
+            } else {
+                pin.order = 0; // Top toolbar: show at top
+            }
         }
-        // Move all down one.
+        
+        // Always shift existing pins down if they overlap with the assigned order
         for (Pin p : pins) {
-            p.order++;
+            if (p.order >= pin.order) {
+                p.order++;
+            }
         }
+        
         pins.add(pin);
         sortListAndApplyOrders();
 
