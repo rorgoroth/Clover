@@ -236,6 +236,10 @@ public class ThreadLayout extends CoordinatorLayout implements
             CoordinatorLayout.LayoutParams barLp = (CoordinatorLayout.LayoutParams) newPostsBar.getLayoutParams();
             barLp.bottomMargin += toolbarH;
             newPostsBar.setLayoutParams(barLp);
+        } else {
+            CoordinatorLayout.LayoutParams containerLp = (CoordinatorLayout.LayoutParams) fabContainer.getLayoutParams();
+            containerLp.bottomMargin += dp(48);
+            fabContainer.setLayoutParams(containerLp);
         }
 
         presenter.create(this);
