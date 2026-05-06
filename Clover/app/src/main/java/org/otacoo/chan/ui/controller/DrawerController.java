@@ -116,7 +116,56 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
         });
         recyclerView = view.findViewById(R.id.drawer_recycler_view);
         recyclerView.setHasFixedSize(true);
-        recyclerView.setLayoutManager(new LinearLayoutManager(context));
+        LinearLayoutManager llm = new LinearLayoutManager(context);
+        boolean bottomMode = ChanSettings.toolbarBottom.get();
+        if (bottomMode) {
+            llm.setStackFromEnd(true);
+            recyclerView.setPadding(0, 0, 0, dp(16));
+        } else {
+            recyclerView.setPadding(0, dp(16), 0, 0);
+        }
+        recyclerView.setClipToPadding(false);
+        recyclerView.setLayoutManager(llm);
+
+        // Configure settings footer
+        LinearLayout drawerPanelLinear = view.findViewById(R.id.drawer_panel);
+        View footer = view.findViewById(R.id.drawer_settings_footer);
+        footer.setVisibility(View.VISIBLE);
+        theme().settingsDrawable.apply((ImageView) footer.findViewById(R.id.image_settings));
+        theme().historyDrawable.apply((ImageView) footer.findViewById(R.id.image_history));
+        ((TextView) footer.findViewById(R.id.text_settings)).setTypeface(ROBOTO_MEDIUM);
+        footer.findViewById(R.id.settings).setOnClickListener(v -> openSettings());
+        footer.findViewById(R.id.image_history).setOnClickListener(v -> openHistory());
+
+        // Inject fixed header layout
+        View fixedHeader = android.view.LayoutInflater.from(context).inflate(R.layout.cell_header, drawerPanelLinear, false);
+        
+        TextView headerText = fixedHeader.findViewById(R.id.text);
+        headerText.setText(R.string.drawer_pinned);
+        headerText.setTypeface(ROBOTO_MEDIUM);
+
+        ImageView clear = fixedHeader.findViewById(R.id.clear);
+        AndroidUtils.setRoundItemBackground(clear);
+        clear.setOnClickListener(v -> onHeaderClicked(null, DrawerAdapter.HeaderAction.CLEAR));
+        clear.setOnLongClickListener(v -> { onHeaderClicked(null, DrawerAdapter.HeaderAction.CLEAR_ALL); return true; });
+
+        ImageView add = fixedHeader.findViewById(R.id.add);
+        AndroidUtils.setRoundItemBackground(add);
+        add.setVisibility(ChanSettings.pinnedSearchesEnabled.get() ? View.VISIBLE : View.GONE);
+        add.setOnClickListener(v -> onHeaderClicked(null, DrawerAdapter.HeaderAction.ADD));
+
+        theme().clearDrawable.apply(clear);
+        theme().pinSearchDrawable.apply(add);
+
+        // Apply fixed positioning
+        if (bottomMode) {
+            int settingsIndex = drawerPanelLinear.indexOfChild(footer);
+            drawerPanelLinear.addView(fixedHeader, settingsIndex != -1 ? settingsIndex : 1);
+        } else {
+            drawerPanelLinear.removeView(footer);
+            drawerPanelLinear.addView(footer, 0);
+            drawerPanelLinear.addView(fixedHeader, 1);
+        }
 
         drawerAdapter = new DrawerAdapter(this);
         recyclerView.setAdapter(drawerAdapter);
@@ -133,16 +182,6 @@ public class DrawerController extends Controller implements DrawerAdapter.Callba
 
         ItemTouchHelper itemTouchHelper = new ItemTouchHelper(drawerAdapter.getItemTouchHelperCallback());
         itemTouchHelper.attachToRecyclerView(recyclerView);
-
-        if (ChanSettings.toolbarBottom.get()) {
-            View footer = view.findViewById(R.id.drawer_settings_footer);
-            footer.setVisibility(View.VISIBLE);
-            theme().settingsDrawable.apply((ImageView) footer.findViewById(R.id.image_settings));
-            theme().historyDrawable.apply((ImageView) footer.findViewById(R.id.image_history));
-            ((TextView) footer.findViewById(R.id.text_settings)).setTypeface(ROBOTO_MEDIUM);
-            footer.findViewById(R.id.settings).setOnClickListener(v -> openSettings());
-            footer.findViewById(R.id.image_history).setOnClickListener(v -> openHistory());
-        }
 
         org.otacoo.chan.core.site.sites.chan8.Chan8PowNotifier.setRootView(drawerLayout);
 
