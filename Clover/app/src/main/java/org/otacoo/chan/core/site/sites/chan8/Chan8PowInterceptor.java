@@ -9,6 +9,7 @@ import okhttp3.Response;
 
 import org.otacoo.chan.Chan;
 import org.otacoo.chan.core.di.NetModule;
+import org.otacoo.chan.core.net.BackgroundRequest;
 import org.otacoo.chan.utils.Logger;
 
 import java.util.List;
@@ -19,13 +20,31 @@ public class Chan8PowInterceptor implements Interceptor {
     private static final String TAG = "Chan8PowInterceptor";
     public static final String SILENT_POW_HEADER = "X-Clover-Silent-PoW";
     private static final String POW_BYPASS_HEADER = "X-Clover-8chan-Bypass";
+    // Marks the request that asks the site whether the session is still good.
+    // It is not a use of the site, so it does not count as one.
+    public static final String POW_PROBE_HEADER = "X-Clover-PoW-Probe";
 private static final Pattern POW_TOKEN_PATTERN =
         Pattern.compile("<pre\\s+id\\s*=\\s*['\"]?c['\"]?[^>]*>([^<]+)</pre>", Pattern.CASE_INSENSITIVE);
     private static final int TIMEOUT = 30000;
     // 8chan refuses proof of work submissions for a while when too many of
     // them are sent, the app has to stop sending them then.
-    private static final long SUBMISSION_BACKOFF_MS = 5 * 60 * 1000;
+    private static final long SUBMISSION_BACKOFF_MS = 60 * 1000;
+    // 8chan does not accept a solution that is sent too soon after the
+    // challenge was given. The app solves the challenge a lot faster than a
+    // browser does, so the solution is held back a moment before it is sent.
+    private static final long MIN_SOLVE_TIME_MS = 2000;
+    // A refused solution does not use up the challenge, so it can be sent
+    // again a little later.
+    private static final long RETRY_DELAY_MS = 2500;
+    private static final int SUBMIT_ATTEMPTS = 2;
     private static volatile long submissionsBlockedUntil = 0;
+    private static volatile boolean backoffReported = false;
+    // When the site was last asked for something, so that the proof of work
+    // is only renewed while the site is in use.
+    private static volatile long lastUseTime = 0;
+    // The site counts as in use for this long after it was last asked for
+    // something.
+    private static final long USE_WINDOW_MS = 10 * 60 * 1000;
     private static volatile java.util.concurrent.CountDownLatch _latch = null;
     private static volatile okhttp3.OkHttpClient nonRedirectClient = null;
 
@@ -96,9 +115,17 @@ private static final Pattern POW_TOKEN_PATTERN =
     @SuppressWarnings("deprecation")
     public Response intercept(Chain chain) throws java.io.IOException {
         Request req = chain.request();
-        // A request that is made in the background (the board list) must not
-        // show anything to the user.
-        boolean silentPow = req.header(SILENT_POW_HEADER) != null;
+        // A request that is made in the background (the board list, the
+        // automatic refreshing of a thread) must not show anything to the user.
+        boolean silentPow = req.header(SILENT_POW_HEADER) != null
+                || req.tag(BackgroundRequest.class) != null;
+        // The site is being used now. The probe that asks whether the session
+        // is still good does not count, it would keep the site alive for ever.
+        if (Chan8RateLimit.is8chanHost(req.url().host())
+                && req.header(POW_BYPASS_HEADER) == null
+                && req.header(POW_PROBE_HEADER) == null) {
+            lastUseTime = System.currentTimeMillis();
+        }
 
         Response resp;
         boolean clearedPowCookies = false;
@@ -227,13 +254,21 @@ private static final Pattern POW_TOKEN_PATTERN =
             }
         }
 
+        // True when this request told the user that the proof of work is being
+        // solved. It is undone when the request is done.
+        boolean announced = false;
+
         try {
             if (!acquired) {
-                if (is403Pow || is200HtmlPow) resp.close(); // abandon; wait for solver thread
+                // The response is not used, the request is made again below.
+                // It has to be closed, OkHttp does not allow a second
+                // request while the previous response is still open.
+                resp.close();
                 // If this is a non-silent (user-visible) request, show the snackbar now — the
                 // solver thread may be processing a silent request and won't show it.
-                if (req.header(SILENT_POW_HEADER) == null) {
+                if (!silentPow) {
                     Chan8PowNotifier.onPowStarted();
+                    announced = true;
                 }
                 // Wait for the thread that is performing POW to finish, with a bound
                 // so a stuck solver can never park this dispatcher thread forever.
@@ -262,13 +297,20 @@ private static final Pattern POW_TOKEN_PATTERN =
         // many of them are sent. Remember that and stop trying, otherwise every
         // request would submit another one and keep the limit alive.
         if (System.currentTimeMillis() < submissionsBlockedUntil) {
-            Logger.w(TAG, "POW submissions are refused by 8chan, not trying again");
+            if (!backoffReported) {
+                backoffReported = true;
+                Logger.w(TAG, "POW submissions are refused by 8chan, not trying again");
+            }
             return resp;
         }
+        backoffReported = false;
 
         // For X-PoWBlock-Status and 200-HTML cases, the challenge may be in the response body.
         // For 403 and 200-HTML-without-token we fetch it separately inside the acquired block.
         String html = (xBlockRequired || is200HtmlPow) ? resp.peekBody(64 * 1024).string() : null;
+        // When the challenge was received. 8chan measures how long the client
+        // took to solve it, so this is the start of that measurement.
+        long challengeReceivedAt = System.currentTimeMillis();
 
             // useCaptchaJsSubmit: true when the challenge came from /captcha.js rather than
             // being embedded in the original response body (affects the submit URL).
@@ -287,6 +329,7 @@ private static final Pattern POW_TOKEN_PATTERN =
                     }
                     return chain.proceed(req.newBuilder().header(POW_BYPASS_HEADER, "1").build());
                 }
+                challengeReceivedAt = System.currentTimeMillis();
                 useCaptchaJsSubmit = true;
             } else if (is200HtmlPow) {
                 // The body is a challenge or TOS/interstitial page.
@@ -305,6 +348,7 @@ private static final Pattern POW_TOKEN_PATTERN =
                         }
                         return chain.proceed(req.newBuilder().header(POW_BYPASS_HEADER, "1").build());
                     }
+                    challengeReceivedAt = System.currentTimeMillis();
                     useCaptchaJsSubmit = true;
                 }
             }
@@ -323,7 +367,10 @@ private static final Pattern POW_TOKEN_PATTERN =
                 return resp;
             }
 
-            if (!silentPow) Chan8PowNotifier.onPowStarted();
+            if (!silentPow && !announced) {
+                Chan8PowNotifier.onPowStarted();
+                announced = true;
+            }
 
             int algorithm = NetModule.extractPowAlgorithm(html);
             long t0 = System.currentTimeMillis();
@@ -360,10 +407,50 @@ private static final Pattern POW_TOKEN_PATTERN =
                     .header(POW_BYPASS_HEADER, "1")
                     .build();
 
-            Response submitResp = getNonRedirectClient().newCall(submitReq).execute();
-            int submitCode = submitResp.code();
-            Logger.i(TAG, "POW submit: code=" + submitCode + " url=" + submitUrl
-                    + " set-cookie=" + submitResp.headers("Set-Cookie"));
+            Response submitResp = null;
+            int submitCode = 0;
+            // 8chan refuses a solution that is sent too soon after the
+            // challenge was given. The app solves the challenge much faster
+            // than a browser does, so the solution is held back a moment
+            // before it is sent. A refused solution does not use up the
+            // challenge, so it is sent again a little later.
+            for (int attempt = 1; attempt <= SUBMIT_ATTEMPTS; attempt++) {
+                long wait = challengeReceivedAt + MIN_SOLVE_TIME_MS - System.currentTimeMillis();
+                if (wait > 0) {
+                    try {
+                        Thread.sleep(wait);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                if (attempt > 1) {
+                    try {
+                        Thread.sleep(RETRY_DELAY_MS);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        break;
+                    }
+                }
+                submitResp = getNonRedirectClient().newCall(submitReq).execute();
+                submitCode = submitResp.code();
+                Logger.i(TAG, "POW submit: code=" + submitCode + " attempt=" + attempt
+                        + " url=" + submitUrl + " set-cookie=" + submitResp.headers("Set-Cookie"));
+                if (submitCode == 200 || submitCode == 302 || submitCode == 303
+                        || submitCode == 429) {
+                    break;
+                }
+                // The solution was refused, the challenge is still good, so
+                // try again after a moment.
+                submitResp.close();
+                submitResp = null;
+                if (attempt < SUBMIT_ATTEMPTS) {
+                    Logger.w(TAG, "POW submit refused with " + submitCode + ", sending it again");
+                }
+            }
+            if (submitResp == null) {
+                submitCode = submitCode == 0 ? 400 : submitCode;
+            }
             // If we get rate-limited on the POW submission, abandon and return the original 403/required response.
             if (submitCode == 429) {
                 submitResp.close();
@@ -380,13 +467,13 @@ private static final Pattern POW_TOKEN_PATTERN =
             }
 
             if (submitCode != 200 && submitCode != 302 && submitCode != 303) {
-                // The solution was refused. 8chan answers with 400 when it does
-                // not like the submission, so stop sending them for a while and
-                // let the app fall back to the browser.
+                // The solution was refused twice. 8chan answers with 400 when
+                // it does not like the submission, so stop sending them for a
+                // while and let the app fall back to the browser.
                 Logger.w(TAG, "POW submit refused with " + submitCode + ", backing off for "
                         + (SUBMISSION_BACKOFF_MS / 1000) + "s");
                 submissionsBlockedUntil = System.currentTimeMillis() + SUBMISSION_BACKOFF_MS;
-                submitResp.close();
+                if (submitResp != null) submitResp.close();
                 return new okhttp3.Response.Builder()
                         .request(req)
                         .protocol(okhttp3.Protocol.HTTP_1_1)
@@ -452,6 +539,11 @@ private static final Pattern POW_TOKEN_PATTERN =
             Request retryReq = req.newBuilder().removeHeader("Cookie").header(POW_BYPASS_HEADER, "1").build();
             return chain.proceed(retryReq);
         } finally {
+            if (announced) {
+                // This request is done, the message about the proof of work is
+                // no longer needed.
+                Chan8PowNotifier.onPowFinished();
+            }
             // Release waiting threads
             synchronized (Chan8PowInterceptor.class) {
                 if (localLatch != null && _latch == localLatch) {
@@ -462,9 +554,18 @@ private static final Pattern POW_TOKEN_PATTERN =
         }
     }
 
+    /**
+     * True when the site was used recently enough that it is worth renewing
+     * the proof of work in the background. The session is bound to the
+     * address of the connection, so it only goes stale when the site is
+     * actually being looked at.
+     */
+    public static boolean isUsedRecently() {
+        return System.currentTimeMillis() - lastUseTime < USE_WINDOW_MS;
+    }
+
     /** True when the response is the page of a proof of work challenge. */
-    private static boolean isChallenge(Response response) throws java.io.IOException {
-        String powStatus = response.header("X-PoWBlock-Status");
+    private static boolean isChallenge(Response response) throws java.io.IOException {        String powStatus = response.header("X-PoWBlock-Status");
         if (powStatus == null) powStatus = response.header("X-PoW-Status");
         if (powStatus != null && powStatus.equalsIgnoreCase("required")) return true;
         if (response.code() == 403) {
