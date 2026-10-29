@@ -1,23 +1,7 @@
 name: Build
 
-# - Pull requests: build only (APKs are attached to the run as an artifact).
-# - Pushes to main / manual runs: build, then replace the rolling "latest"
-#   pre-release with freshly built APKs.
-#
-# Docs-only and markdown-only pushes are skipped so editing docs/update_api.json
-# (which deploys GitHub Pages) doesn't trigger a rebuild.
-
 on:
   push:
-    branches: [main]
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
-      - ".github/workflows/static.yml"
-  pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "**.md"
   workflow_dispatch:
 
 permissions:
@@ -26,10 +10,6 @@ permissions:
 concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-env:
-  # Name of the rolling tag/release that always holds the newest build.
-  LATEST_TAG: latest
 
 jobs:
   build:
@@ -126,39 +106,82 @@ jobs:
           retention-days: 14
 
   release:
-    # Not for pull requests: only builds from main (or a manual run) replace "latest".
+    # Not for pull requests: only builds from main (or a manual run) create a release.
     if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+    # Serialise releases so two quick pushes can't pick the same tag.
     concurrency:
-      group: release-latest
+      group: release
       cancel-in-progress: false
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
+      # Full history + tags are needed to find the previous tag and list commits.
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - uses: actions/download-artifact@v7
         with:
           name: apks
           path: dist
 
-      - name: Replace the rolling "latest" release
+      - name: Create a release for this build
         env:
           VERSION: ${{ needs.build.outputs.version }}
           SIGNING: ${{ needs.build.outputs.signing }}
         run: |
           SHORT_SHA="${GITHUB_SHA::7}"
+          REPO_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}"
+
+          # Tag = build date (UTC). If that tag is taken, use YYYY-MM-DD-2, -3, ...
+          BASE_TAG=$(date -u +%F)
+          TAG="$BASE_TAG"
+          N=2
+          while git rev-parse -q --verify "refs/tags/$TAG" > /dev/null; do
+            TAG="${BASE_TAG}-${N}"
+            N=$((N + 1))
+          done
+
+          # Previous tag reachable from this commit. Skip the legacy rolling "latest" tag.
+          PREV=$(git describe --tags --abbrev=0 --exclude=latest "$GITHUB_SHA" 2>/dev/null || true)
+
+          # One line per commit: subject, short hash linking to the commit, author.
+          FMT='- %s ([`%h`]('"$REPO_URL"'/commit/%H)) - %an'
+          if [ -n "$PREV" ]; then
+            HEADING="Changes since \`${PREV}\`"
+            COMMITS=$(git log --no-merges -n 100 --pretty=format:"$FMT" "${PREV}..${GITHUB_SHA}")
+          else
+            HEADING="Recent commits"
+            COMMITS=$(git log --no-merges -n 30 --pretty=format:"$FMT" "$GITHUB_SHA")
+          fi
+
           {
-            echo "Automated build of \`${VERSION}\` from commit [\`${SHORT_SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})."
+            echo "Automated build of \`${VERSION}\` from commit [\`${SHORT_SHA}\`](${REPO_URL}/commit/${GITHUB_SHA})."
+            echo
+            echo "### ${HEADING}"
+            echo
+            if [ -n "$COMMITS" ]; then
+              echo "$COMMITS"
+            else
+              echo "_No new commits (this is a rebuild of an already released commit)._"
+            fi
+            if [ -n "$PREV" ]; then
+              echo
+              echo "Full comparison: [\`${PREV}...${TAG}\`](${REPO_URL}/compare/${PREV}...${TAG})"
+            fi
+            echo
+            echo "### Downloads"
             echo
             echo "- \`Clover-stable.apk\` - stable flavor"
             echo "- \`Clover-dev.apk\` - dev flavor (same package name as stable, so install one or the other)"
             echo
-            echo "This release is rebuilt on every push to \`main\`. For versioned releases see the [releases page](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases)."
-            echo "Build log: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            echo "Build log: ${REPO_URL}/actions/runs/${GITHUB_RUN_ID}"
             if [ "$SIGNING" != "release" ]; then
               echo
               echo "> [!WARNING]"
@@ -166,10 +189,8 @@ jobs:
             fi
           } > notes.md
 
-          # Delete and recreate so the tag moves to this commit and stale assets disappear.
-          gh release delete "$LATEST_TAG" --cleanup-tag --yes || true
-          gh release create "$LATEST_TAG" dist/*.apk \
+          gh release create "$TAG" dist/*.apk \
             --target "$GITHUB_SHA" \
-            --title "Latest build (${VERSION}, ${SHORT_SHA})" \
+            --title "${TAG} (${VERSION}, ${SHORT_SHA})" \
             --notes-file notes.md \
             --latest=true
