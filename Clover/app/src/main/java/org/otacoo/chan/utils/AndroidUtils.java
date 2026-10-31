@@ -558,6 +558,9 @@ public class AndroidUtils {
     public static void fixSnackbarText(Context context, Snackbar snackbar) {
         TextView textView = snackbar.getView().findViewById(com.google.android.material.R.id.snackbar_text);
         if (textView != null) {
+            // Snackbars stay single line, the text shortens with "..." if needed
+            textView.setMaxLines(1);
+            textView.setEllipsize(android.text.TextUtils.TruncateAt.END);
             textView.setTextColor(0xffffffff);
         }
         snackbar.setActionTextColor(0xffffffff);
@@ -777,6 +780,11 @@ public class AndroidUtils {
         collectFloatingActionButtons((ViewGroup) target, fabs);
         for (int i = 0; i < fabs.size(); i++) {
             FloatingActionButton fab = fabs.get(i);
+            if (fab.getParent() == target) {
+                // Material's own behavior lifts FABs that sit in the same
+                // CoordinatorLayout as the snackbar; lifting again doubles it
+                continue;
+            }
             if (!fab.isShown()) {
                 continue;
             }

@@ -89,6 +89,7 @@ import org.otacoo.chan.core.settings.ChanSettings;
 import org.otacoo.chan.utils.AndroidUtils;
 import org.otacoo.chan.utils.Logger;
 import org.otacoo.chan.utils.RotationGestureDetector;
+import org.otacoo.chan.utils.Time;
 
 import java.io.File;
 import java.io.IOException;
@@ -136,6 +137,10 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     private FileCacheDownloader bigImageRequest;
     private FileCacheDownloader gifRequest;
     private FileCacheDownloader videoRequest;
+
+    // Filecache file an APNG is decoding from; the decoder reopens it every
+    // frame, so the cache must not trim it while playback is up
+    private File apngFile;
 
     private PlayerView exoPlayerView;
     private View playerRoot;
@@ -686,10 +691,11 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
 
             ImageView animatedView = findAnimatedImageView();
             if (animatedView != null && animatedView.getDrawable() instanceof APNGDrawable apng) {
-                if (apng.isRunning()) {
-                    apng.pause();
-                } else {
+                // isRunning() stays true while paused, so pause state decides
+                if (apng.isPaused()) {
                     apng.resume();
+                } else {
+                    apng.pause();
                 }
                 return true;
             }
@@ -702,6 +708,40 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             playerControllerContainer.setVisibility(View.GONE);
         }
     };
+
+    // Keeps the APNG filecache file fresh so the cache trim doesn't evict an
+    // actively playing animation; stops the animation if the file is gone
+    private static final long APNG_FILE_TOUCH_MS = 10_000;
+
+    private final Runnable apngFileTouchTask = new Runnable() {
+        @Override
+        public void run() {
+            File file = apngFile;
+            if (file == null) return;
+            if (file.exists()) {
+                file.setLastModified(Time.get());
+                handler.postDelayed(this, APNG_FILE_TOUCH_MS);
+            } else {
+                // Cache was wiped underneath the animation: stop decoding to
+                // avoid a "file not found" log per frame
+                stopApngDrawable();
+                apngFile = null;
+                handler.removeCallbacks(this);
+            }
+        }
+    };
+
+    private void stopApngDrawable() {
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (child instanceof ImageView && child != playView) {
+                Drawable d = ((ImageView) child).getDrawable();
+                if (d instanceof APNGDrawable) {
+                    ((APNGDrawable) d).stop();
+                }
+            }
+        }
+    }
 
     private final Runnable deferredTapTask = () -> {
         if (!isAttachedToWindow()) return;
@@ -910,6 +950,12 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
 
     // Decode an APNG file using the APNG4Android library
     private void setAnimatedImageFile(File file, Mode fallbackMode) {
+        // Keep the filecache file fresh: a trim would delete it underneath
+        // the decoder, which then can't reopen it; a system wipe of the
+        // cache dir has the same effect, handled by the tick task
+        apngFile = file;
+        handler.removeCallbacks(apngFileTouchTask);
+        handler.postDelayed(apngFileTouchTask, APNG_FILE_TOUCH_MS);
         try {
             APNGDrawable drawable = new APNGDrawable(
                     new FileLoader(file.getAbsolutePath()));
@@ -917,7 +963,10 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             ImageView view = new ImageView(getContext());
             view.setImageDrawable(drawable);
             view.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            onModeLoaded(Mode.GIF, view);
+            // Mount as the mode that requested the file: APNGs that sites
+            // type as static (extension-less urls) load as BIGIMAGE, and
+            // onModeLoaded drops a view whose mode is not the current one
+            onModeLoaded(fallbackMode, view);
             drawable.start();
         } catch (Exception e) {
             Logger.e(TAG, "APNG decode failed, falling back", e);
@@ -1736,6 +1785,8 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         handler.removeCallbacks(hideControllerTask);
         handler.removeCallbacks(updateTimeTask);
         handler.removeCallbacks(hideZoomOverlayTask);
+        handler.removeCallbacks(apngFileTouchTask);
+        apngFile = null;
         hideZoomOverlay();
         hasContent = false;
         videoError = false;
@@ -1748,10 +1799,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                     ((GifDrawable) gif.getDrawable()).stop();
                 }
             } else if (child instanceof ImageView && child != playView) {
-                Drawable d = ((ImageView) child).getDrawable();
-                if (d instanceof APNGDrawable) {
-                    ((APNGDrawable) d).stop();
-                }
+                stopApngDrawable();
             }
         }
 
