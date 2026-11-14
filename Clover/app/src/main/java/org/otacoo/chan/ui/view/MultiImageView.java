@@ -147,6 +147,9 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
     private ImageView videoStartupOverlay;
     private boolean videoError = false;
     private int vp9FallbackStage = 0; // 0=initial, 1=libvpx retry, 2=c2.android retry
+    // Stage reached by a previous failure in this app run; later videos skip
+    // the attempts that already proved broken.
+    private static int vp9StageFloor = 0;
     private ExoPlayer exoPlayer;
     private android.webkit.WebView fallbackWebView;
 
@@ -427,9 +430,17 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
         exoPlayerView.setTranslationY(videoTransY);
     }
 
+    // How far a zoomed video may be panned horizontally from the center.
+    private float videoMaxTranslationX() {
+        if (exoPlayerView == null || exoPlayerView.getWidth() == 0 || exoPlayerView.getHeight() == 0) {
+            return 0f;
+        }
+        return exoPlayerView.getWidth() * (videoScale - 1f) / 2f;
+    }
+
     private void clampVideoTranslation() {
         if (exoPlayerView == null || exoPlayerView.getWidth() == 0 || exoPlayerView.getHeight() == 0) return;
-        float maxX = exoPlayerView.getWidth() * (videoScale - 1f) / 2f;
+        float maxX = videoMaxTranslationX();
         float maxY = exoPlayerView.getHeight() * (videoScale - 1f) / 2f;
         videoTransX = Math.max(-maxX, Math.min(videoTransX, maxX));
         videoTransY = Math.max(-maxY, Math.min(videoTransY, maxY));
@@ -606,8 +617,15 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                 videoTransY += dy;
                 clampVideoTranslation();
                 applyVideoTransform();
-                if (getParent() != null && !ChanSettings.swipeWhileZoomedIn.get()) {
-                    getParent().requestDisallowInterceptTouchEvent(true);
+                if (getParent() != null) {
+                    if (!ChanSettings.swipeWhileZoomedIn.get()) {
+                        // Prevent swipes while zoomed in
+                        getParent().requestDisallowInterceptTouchEvent(true);
+                    } else {
+                        boolean canPan = (dx > 0f && videoTransX < videoMaxTranslationX())
+                                || (dx < 0f && videoTransX > -videoMaxTranslationX());
+                        getParent().requestDisallowInterceptTouchEvent(canPan);
+                    }
                 }
             } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                 scheduleZoomOverlayHide();
@@ -1113,7 +1131,7 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
             videoStartupOverlay = overlay;
         }
         playerRoot = root;
-        vp9FallbackStage = 0;
+        vp9FallbackStage = vp9StageFloor;
         videoError = false;
         videoScale = 1f;
         videoTransX = 0f;
@@ -1252,13 +1270,16 @@ public class MultiImageView extends FrameLayout implements View.OnClickListener,
                         || error.errorCode == PlaybackException.ERROR_CODE_DECODER_INIT_FAILED
                         || error.errorCode == PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES
                         || error.errorCode == PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED
-                        || error.errorCode == PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED) {
+                        || error.errorCode == PlaybackException.ERROR_CODE_DECODER_QUERY_FAILED
+                        // A dying decoder can fail the surface attach instead
+                        || error.errorCode == PlaybackException.ERROR_CODE_UNSPECIFIED) {
                     ChanSettings.Vp9ExtensionMode extMode = ChanSettings.vp9ExtensionMode.get();
                     int maxStage = extMode == ChanSettings.Vp9ExtensionMode.DEFAULT ? 2
                                  : extMode == ChanSettings.Vp9ExtensionMode.PREFER  ? 1
                                  : 0;
                     if (vp9FallbackStage < maxStage) {
                         vp9FallbackStage++;
+                        vp9StageFloor = Math.max(vp9StageFloor, vp9FallbackStage);
                         handler.removeCallbacks(updateTimeTask);
                         handler.removeCallbacks(hideControllerTask);
                         if (exoPlayer != null) {

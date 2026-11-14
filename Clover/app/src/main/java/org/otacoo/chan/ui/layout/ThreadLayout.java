@@ -491,11 +491,10 @@ public class ThreadLayout extends CoordinatorLayout implements
     }
 
     @Override
-    public void openReVerify() {
+    public void openSiteSetup() {
         Loadable loadable = presenter.getLoadable();
         if (loadable != null) {
-            callback.openSiteAuthentication(loadable.getSite(),
-                    "https://sys.4chan.org/signin", "Email Verification");
+            callback.openSiteSetup(loadable.getSite());
         }
     }
 
@@ -793,6 +792,11 @@ public class ThreadLayout extends CoordinatorLayout implements
     @Override
     public void scrollToTopOf(int displayPosition) {
         threadListLayout.scrollToTopOf(displayPosition);
+    }
+
+    @Override
+    public void scrollToUnread(int displayPosition) {
+        threadListLayout.scrollToUnread(displayPosition);
     }
 
     @Override
@@ -1375,6 +1379,8 @@ public class ThreadLayout extends CoordinatorLayout implements
         boolean shouldToolbarCollapse();
 
         void openSiteAuthentication(Site site, String url, String title);
+
+        void openSiteSetup(Site site);
 
         void presentArchiveUnlock(String domain, Runnable onUnlocked, Runnable onCancelled);
 

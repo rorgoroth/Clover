@@ -95,6 +95,8 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     private int background;
     private boolean searchOpen;
     private int lastPostCount;
+    // Post that the unread line is pinned after; fixed for the open thread
+    // and only moved when the line is cleared at the bottom.
     private int threadLastViewed = -1;
 
     /**
@@ -226,10 +228,12 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
                 int bottom = postAdapter.getDisplayList().size() - 1;
                 if (bottom > lastPostCount) {
                     lastPostCount = bottom;
-                    Post lastPost = postAdapter.getDisplayList().get(bottom);
+                    threadLastViewed = postAdapter.getDisplayList().get(bottom).no;
                     callback.onListScrolledToBottom();
+                }
+                // Clear the line only once scrolling cannot go any further
+                if (!recyclerView.canScrollVertically(1)) {
                     recyclerView.post(() -> postAdapter.clearLastSeenIndicator());
-                    threadLastViewed = lastPost.no;
                 }
             }
 
@@ -380,12 +384,11 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
                     int bottom = postAdapter.getDisplayList().size() - 1;
                     if (bottom > lastPostCount) {
                         lastPostCount = bottom;
+                        threadLastViewed = postAdapter.getDisplayList().get(bottom).no;
                         callback.onListScrolledToBottom();
+                    }
+                    if (!recyclerView.canScrollVertically(1)) {
                         recyclerView.post(() -> postAdapter.clearLastSeenIndicator());
-                        if (showingThread != null && !showingThread.posts.isEmpty()) {
-                            threadLastViewed = showingThread.posts.get(
-                                    showingThread.posts.size() - 1).no;
-                        }
                     }
                 } else if (wasAtBottom) {
                     // New posts pushed us above bottom so we only mark the currently visible posts as seen
@@ -698,6 +701,21 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
         }
     }
 
+    public void scrollToUnread(int displayPosition) {
+        if (replyOpen) {
+            setRecyclerViewPadding();
+        }
+        int scrollPosition = postAdapter.getLastSeenIndicatorPosition();
+        if (scrollPosition < 0) {
+            scrollPosition = postAdapter.getScrollPosition(displayPosition);
+        }
+        if (layoutManager instanceof LinearLayoutManager) {
+            ((LinearLayoutManager) layoutManager).scrollToPositionWithOffset(scrollPosition, 0);
+        } else {
+            recyclerView.scrollToPosition(scrollPosition);
+        }
+    }
+
     public void scrollTo(int displayPosition, boolean smooth) {
         if (displayPosition < 0) {
             int bottom = postAdapter.getItemCount() - 1;
@@ -790,8 +808,8 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
     }
 
     @Override
-    public void openReVerify() {
-        threadListLayoutCallback.openReVerify();
+    public void openSiteSetup() {
+        threadListLayoutCallback.openSiteSetup();
     }
 
     public int[] getIndexAndTop() {
@@ -1033,7 +1051,7 @@ public class ThreadListLayout extends FrameLayout implements ReplyLayout.ReplyLa
 
         void showImageReencodingWindow();
 
-        void openReVerify();
+        void openSiteSetup();
 
         void onScrolling(int dy);
     }

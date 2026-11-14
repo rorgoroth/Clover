@@ -709,7 +709,15 @@ public class ReplyLayout extends LoadView implements
                     break;
                 }
                 case NEW_CAPTCHA: {
-                    authenticationLayout = new NewCaptchaLayout(getContext());
+                    NewCaptchaLayout view = new NewCaptchaLayout(getContext());
+
+                    FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                            LayoutParams.MATCH_PARENT,
+                            LayoutParams.MATCH_PARENT
+                    );
+                    view.setLayoutParams(params);
+
+                    authenticationLayout = view;
                     Logger.i("ReplyLayout", "Created NewCaptchaLayout (NEW_CAPTCHA)");
                     break;
                 }
@@ -796,7 +804,8 @@ public class ReplyLayout extends LoadView implements
                     message.setFocusable(false);
                 }
                 openMessage(false, true, "", false);
-                if (ChanSettings.toolbarBottom.get() && !lynxchan) {
+                if (ChanSettings.toolbarBottom.get() && !lynxchan
+                        && !ChanSettings.bottomReply.get()) {
                     captchaContainer.setPadding(0, 0, 0, dp(56));
                 } else {
                     captchaContainer.setPadding(0, 0, 0, 0);
@@ -848,12 +857,8 @@ public class ReplyLayout extends LoadView implements
     }
 
     @Override
-    public void suggestReVerify() {
-        Snackbar snackbar = Snackbar.make(this,
-                R.string.reply_reverify_suggestion, Snackbar.LENGTH_LONG);
-        snackbar.setAction(R.string.reply_reverify_action, v -> callback.openReVerify());
-        AndroidUtils.applyThemedStyle(snackbar, this);
-        snackbar.show();
+    public void openSiteSetup() {
+        callback.openSiteSetup();
     }
 
     @Override
@@ -1562,7 +1567,7 @@ public class ReplyLayout extends LoadView implements
 
         void showImageReencodingWindow();
 
-        void openReVerify();
+        void openSiteSetup();
     }
 
     private static String guessClipFilename(Context context, Uri uri) {
